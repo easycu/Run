@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OX 퀴즈 런</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --bg-color: #2c3e50;
+            --road-color: #34495e;
+            --text-color: #ecf0f1;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none; /* 터치 시 텍스트 선택 방지 */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 화면 관리 (SPA 처럼 동작) */
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-color);
+            z-index: 10;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* 공통 UI 요소 */
+        h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 0px #000; }
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 50px;
+            background: var(--primary-color);
+            color: white;
+            margin: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #2980b9;
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn-danger { background: var(--danger-color); box-shadow: 0 4px 0 #c0392b; }
+        .btn-success { background: var(--success-color); box-shadow: 0 4px 0 #27ae60; }
+        .btn-small { padding: 8px 15px; font-size: 0.9rem; }
+
+        /* 메인 화면 */
+        .high-score-box {
+            background: rgba(0,0,0,0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+            color: #f1c40f;
+        }
+
+        /* 게임 화면 */
+        #game-screen {
+            justify-content: flex-start;
+            perspective: 500px; /* 3D 효과 */
+        }
+
+        .hud {
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+        .timer-bar {
+            width: 100%;
+            height: 5px;
+            background: #444;
+            position: absolute;
+            top: 60px;
+            left: 0;
+        }
+        .timer-fill {
+            height: 100%;
+            background: #f1c40f;
+            width: 100%;
+            transition: width linear;
+        }
+
+        .question-box {
+            margin-top: 40px;
+            width: 90%;
+            min-height: 120px;
+            background: white;
+            color: #333;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 90;
+            word-break: keep-all;
+        }
+
+        /* 3D 도로 효과 */
+        .road-container {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60%;
+            background: linear-gradient(to bottom, #2c3e50 0%, #34495e 100%);
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+        
+        .road-line {
+            position: absolute;
+            width: 10px;
+            height: 100%;
+            background: dashed 2px rgba(255,255,255,0.3);
+            animation: roadMove 0.5s linear infinite;
+        }
+
+        @keyframes roadMove {
+            0% { transform: translateY(-50px) scaleY(1); opacity: 0.2; }
+            100% { transform: translateY(50px) scaleY(1.2); opacity: 1; }
+        }
+
+        .character {
+            font-size: 4rem;
+            position: absolute;
+            bottom: 20%;
+            transition: left 0.2s ease;
+            z-index: 50;
+            animation: runBounce 0.3s infinite alternate;
+        }
+        @keyframes runBounce { from { bottom: 20%; } to { bottom: 21%; } }
+
+        /* OX 터치 영역 */
+        .controls {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50%;
+            display: flex;
+            z-index: 200;
+        }
+        .touch-zone {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            opacity: 0.3;
+            transition: opacity 0.2s;
+        }
+        .touch-zone:active { opacity: 0.8; }
+        .left-zone { background: rgba(0,0,255,0.1); color: #3498db; }
+        .right-zone { background: rgba(255,0,0,0.1); color: #e74c3c; }
+
+        /* 결과/복습 화면 */
+        .review-list {
+            width: 90%;
+            max-height: 60%;
+            overflow-y: auto;
+            background: white;
+            color: #333;
+            border-radius: 10px;
+            margin: 20px 0;
+            padding: 10px;
+        }
+        .review-item {
+            border-bottom: 1px solid #ddd;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        .review-item.wrong { background: #fadbd8; }
+        .review-item .q { font-weight: bold; margin-bottom: 5px; display: block; }
+        .review-item .info { display: flex; justify-content: space-between; font-size: 0.8rem; color: #666; }
+        .review-item .desc { margin-top: 5px; color: #2980b9; font-size: 0.85rem; }
+
+        /* 관리자 화면 */
+        .manager-container { width: 90%; height: 90%; display: flex; flex-direction: column; }
+        textarea { width: 100%; height: 150px; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+        .info-text { font-size: 0.8rem; color: #bbb; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div id="main-screen" class="screen active">
+        <div style="font-size: 5rem; margin-bottom: 20px;">🏃💨</div>
+        <h1>OX 퀴즈 런</h1>
+        <div class="high-score-box">🏆 최고 기록: <span id="high-score">0</span>점</div>
+        <button class="btn" onclick="startGame()">게임 시작</button>
+        <button class="btn btn-small" style="background:#7f8c8d" onclick="showManager()">문제 관리</button>
+        <div style="margin-top:20px; font-size: 0.8rem; color: #95a5a6;">좌측 터치: O / 우측 터치: X</div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="hud">
+            <div>점수: <span id="current-score">0</span></div>
+            <div id="life-container">❤️❤️❤️</div>
+        </div>
+        <div class="timer-bar"><div id="timer-fill" class="timer-fill"></div></div>
+        
+        <div class="question-box" id="question-text">
+            문제가 여기에 표시됩니다.
+        </div>
+
+        <div class="road-container">
+            <div class="road-line" style="left: 50%;"></div>
+            <div id="character" class="character" style="left: 50%; transform: translateX(-50%);">🏃</div>
+        </div>
+
+        <div class="controls">
+            <div class="touch-zone left-zone" onclick="selectAnswer('O')">⭕</div>
+            <div class="touch-zone right-zone" onclick="selectAnswer('X')">❌</div>
+        </div>
+    </div>
+
+    <div id="result-screen" class="screen">
+        <h1 id="result-title">GAME OVER</h1>
+        <div style="font-size: 2rem; margin-bottom: 10px;">점수: <span id="final-score">0</span></div>
+        <div style="font-size: 1.2rem; color: #f1c40f; display:none;" id="new-record-msg">🎉 NEW RECORD! 🎉</div>
+        
+        <div class="review-list" id="review-list">
+            </div>
+
+        <div style="display:flex;">
+            <button class="btn" onclick="goHome()">홈으로</button>
+            <button class="btn btn-success" onclick="startGame()">다시 하기</button>
+        </div>
+    </div>
+
+    <div id="manager-screen" class="screen">
+        <h2>문제 관리자</h2>
+        <div class="manager-container">
+            <div class="info-text">
+                엑셀/구글시트에서 <b>[문제] [정답(O/X)] [해설]</b> 순서로<br>
+                드래그 복사하여 아래에 붙여넣으세요.
+            </div>
+            <textarea id="import-area" placeholder="예시:
+행정소송은...	X	행정심판은...
+사과는 맛있다	O	맛있으니까"></textarea>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-success btn-small" onclick="importData()">데이터 등록</button>
+                <button class="btn btn-danger btn-small" onclick="clearData()">전체 삭제</button>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.9rem;">
+                현재 등록된 문제 수: <span id="q-count">0</span>개
+            </div>
+            <button class="btn btn-small" style="margin-top: auto;" onclick="goHome()">돌아가기</button>
+        </div>
+    </div>
+
+<script>
+    /* --- 1. 기본 데이터 & 변수 설정 --- */
+    const STORAGE_KEY = 'oxRunDB'; // 로컬 저장소 키 이름
+    const HIGH_SCORE_KEY = 'oxRunHighScore';
+
+    // 초기 샘플 데이터 (테스트용)
+    const defaultQuestions = [
+        { q: "행정청의 침해적 행정처분에는 사전통지가 필요하다.", a: "O", desc: "행정절차법상 의무 사항입니다." },
+        { q: "거북선은 장영실이 만들었다.", a: "X", desc: "이순신 장군과 나대용 등이 제작했습니다." },
+        { q: "바나나는 사과보다 칼로리가 높다.", a: "O", desc: "100g당 바나나 약 90kcal, 사과 약 57kcal." },
+        { q: "대한민국의 수도는 부산이다.", a: "X", desc: "수도는 서울입니다." },
+        { q: "물은 100도씨에서 끓는다 (1기압 기준).", a: "O", desc: "표준 기압에서 물의 끓는점은 100도입니다." }
+    ];
+
+    let questions = []; // 실제 게임에 쓸 문제들
+    let currentQIndex = 0;
+    let score = 0;
+    let lives = 3;
+    let timerInterval = null;
+    let timeLeft = 10; // 10초
+    let isProcessing = false; // 중복 터치 방지
+    let userHistory = []; // 복습용 기록
+
+    // DOM 요소 가져오기
+    const screens = {
+        main: document.getElementById('main-screen'),
+        game: document.getElementById('game-screen'),
+        result: document.getElementById('result-screen'),
+        manager: document.getElementById('manager-screen')
+    };
+
+    /* --- 2. 초기화 및 화면 전환 --- */
+    window.onload = function() {
+        loadQuestions();
+        updateHighScoreDisplay();
+    };
+
+    function showScreen(screenName) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        screens[screenName].classList.add('active');
+    }
+
+    function loadQuestions() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            questions = JSON.parse(saved);
+        } else {
+            questions = JSON.parse(JSON.stringify(defaultQuestions));
+        }
+        document.getElementById('q-count').innerText = questions.length;
+    }
+
+    function updateHighScoreDisplay() {
+        const best = localStorage.getItem(HIGH_SCORE_KEY) || 0;
+        document.getElementById('high-score').innerText = best;
+    }
+
+    /* --- 3. 게임 플레이 로직 --- */
+    function startGame() {
+        if (questions.length === 0) {
+            alert("등록된 문제가 없습니다. 관리자 메뉴에서 문제를 추가해주세요.");
+            return;
+        }
+
+        // 변수 초기화
+        score = 0;
+        lives = 3;
+        currentQIndex = 0;
+        userHistory = [];
+        isProcessing = false;
+        
+        // 문제 섞기 (Fisher-Yates Shuffle)
+        shuffleArray(questions);
+
+        // UI 업데이트
+        document.getElementById('current-score').innerText = score;
+        updateLifeUI();
+        
+        showScreen('game');
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        // 게임 종료 조건 확인
+        if (lives <= 0 || currentQIndex >= questions.length) {
+            gameOver();
+            return;
+        }
+
+        // 캐릭터 위치 초기화 (중앙)
+        const char = document.getElementById('character');
+        char.style.left = '50%';
+        char.style.transform = 'translateX(-50%) scale(1)';
+        char.innerText = '🏃';
+
+        // 문제 표시
+        const qData = questions[currentQIndex];
+        document.getElementById('question-text').innerText = `Q${currentQIndex + 1}. ${qData.q}`;
+
+        // 타이머 시작
+        startTimer();
+        isProcessing = false;
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        timeLeft = 10; // 10초
+        const fill = document.getElementById('timer-fill');
+        fill.style.width = '100%';
+        fill.style.backgroundColor = '#f1c40f'; // 노란색
+
+        timerInterval = setInterval(() => {
+            timeLeft -= 0.1;
+            const pct = (timeLeft / 10) * 100;
+            fill.style.width = pct + '%';
+
+            if (timeLeft <= 3) fill.style.backgroundColor = '#e74c3c'; // 3초 남으면 빨간색
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                handleTimeOut();
+            }
+        }, 100);
+    }
+
+    function handleTimeOut() {
+        if(isProcessing) return;
+        isProcessing = true;
+        
+        // 시간 초과는 오답 처리
+        lives--;
+        updateLifeUI();
+        
+        // 기록
+        userHistory.push({
+            q: questions[currentQIndex],
+            userAns: "시간초과",
+            isCorrect: false
+        });
+
+        // 1초 후 다음 문제
+        showFeedbackEffect('⏰');
+        setTimeout(() => {
+            currentQIndex++;
+            nextQuestion();
+        }, 1000);
+    }
+
+    function selectAnswer(userChoice) {
+        if (isProcessing) return;
+        isProcessing = true;
+        clearInterval(timerInterval);
+
+        const currentQ = questions[currentQIndex];
+        // 정답 비교 (대소문자 무시)
+        const isCorrect = currentQ.a.toUpperCase() === userChoice;
+
+        // 캐릭터 애니메이션
+        moveCharacter(userChoice);
+
+        // 결과 처리
+        if (isCorrect) {
+            score += 10;
+            document.getElementById('current-score').innerText = score;
+            showFeedbackEffect('⭕');
+        } else {
+            lives--;
+            updateLifeUI();
+            showFeedbackEffect('❌');
+        }
+
+        // 기록 저장
+        userHistory.push({
+            q: currentQ,
+            userAns: userChoice,
+            isCorrect: isCorrect
+        });
+
+        // 잠시 대기 후 다음 문제
+        setTimeout(() => {
+            currentQIndex++;
+            nextQuestion();
+        }, 800);
+    }
+
+    function moveCharacter(direction) {
+        const char = document.getElementById('character');
+        // O는 왼쪽, X는 오른쪽
+        if (direction === 'O') {
+            char.style.left = '20%';
+        } else {
+            char.style.left = '80%';
+        }
+    }
+
+    function showFeedbackEffect(emoji) {
+        const char = document.getElementById('character');
+        char.innerText = emoji;
+        char.style.transform = 'translateX(-50%) scale(1.5)';
+        setTimeout(() => {
+             char.style.transform = 'translateX(-50%) scale(1)';
+        }, 200);
+    }
+
+    function updateLifeUI() {
+        let heartStr = "";
+        for(let i=0; i<lives; i++) heartStr += "❤️";
+        for(let i=0; i<3-lives; i++) heartStr += "💀";
+        document.getElementById('life-container').innerText = heartStr;
+    }
+
+    /* --- 4. 게임 종료 및 결과 처리 --- */
+    function gameOver() {
+        showScreen('result');
+        document.getElementById('final-score').innerText = score;
+
+        // 최고 기록 갱신 확인
+        const currentBest = localStorage.getItem(HIGH_SCORE_KEY) || 0;
+        const newRecordMsg = document.getElementById('new-record-msg');
+        
+        if (score > currentBest) {
+            localStorage.setItem(HIGH_SCORE_KEY, score);
+            updateHighScoreDisplay();
+            newRecordMsg.style.display = 'block';
+        } else {
+            newRecordMsg.style.display = 'none';
+        }
+
+        renderReview();
+    }
+
+    function renderReview() {
+        const list = document.getElementById('review-list');
+        list.innerHTML = ""; // 초기화
+
+        userHistory.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.className = `review-item ${item.isCorrect ? '' : 'wrong'}`;
+            
+            div.innerHTML = `
+                <span class="q">${idx + 1}. ${item.q.q}</span>
+                <div class="info">
+                    <span>내 답: ${item.userAns}</span>
+                    <span>정답: ${item.q.a}</span>
+                </div>
+                <div class="desc">💡 ${item.q.desc}</div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function goHome() {
+        showScreen('main');
+    }
+
+    /* --- 5. 데이터 관리자 (엑셀 붙여넣기) --- */
+    function showManager() {
+        showScreen('manager');
+        loadQuestions(); // 최신 데이터 로드
+    }
+
+    function importData() {
+        const rawText = document.getElementById('import-area').value.trim();
+        if (!rawText) return;
+
+        const lines = rawText.split('\n');
+        let newCount = 0;
+        
+        // 기존 데이터 유지 + 추가 (원하면 questions = [] 로 초기화 후 추가 가능)
+        // 여기서는 "추가" 방식으로 구현
+        const newQuestions = [];
+
+        lines.forEach(line => {
+            // 탭(Tab)으로 구분
+            const parts = line.split('\t');
+            if (parts.length >= 2) {
+                const qText = parts[0].trim();
+                const aText = parts[1].trim().toUpperCase();
+                const descText = parts[2] ? parts[2].trim() : "해설 없음";
+
+                if (qText && (aText === 'O' || aText === 'X')) {
+                    newQuestions.push({ q: qText, a: aText, desc: descText });
+                    newCount++;
+                }
+            }
+        });
+
+        if (newCount > 0) {
+            questions = questions.concat(newQuestions);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(questions));
+            alert(`${newCount}개의 문제가 추가되었습니다!`);
+            document.getElementById('import-area').value = ""; // 입력창 비우기
+            document.getElementById('q-count').innerText = questions.length;
+        } else {
+            alert("데이터 형식을 확인해주세요.\n(문제 [탭] 정답 [탭] 해설)");
+        }
+    }
+
+    function clearData() {
+        if (confirm("정말로 모든 문제를 삭제하시겠습니까?\n(기본 샘플 문제로 초기화됩니다)")) {
+            localStorage.removeItem(STORAGE_KEY);
+            loadQuestions();
+            alert("초기화되었습니다.");
+        }
+    }
+
+    // 유틸리티: 배열 섞기
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+</script>
+</body>
+</html>

@@ -6,107 +6,44 @@
     <title>소리자바 약어 키보드 연습기</title>
     <style>
         /* 기본 스타일 */
-        body { 
-            font-family: 'Malgun Gothic', sans-serif; 
-            background-color: #f4f7f6; 
-            margin: 0; 
-            padding: 0; 
-            touch-action: manipulation; 
-            user-select: none; 
-            display: flex;
-            justify-content: center;
-        }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; touch-action: manipulation; user-select: none; display: flex; justify-content: center; }
         
-        /* 앱 레이아웃 (세로 모드에서도 꽉 차게) */
-        #app { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            width: 100%; 
-            max-width: 600px; 
-            padding: 15px 10px; 
-            box-sizing: border-box; 
-        }
+        #app { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 600px; padding: 15px 10px; box-sizing: border-box; }
         
         /* 상단 상태창 */
-        .header { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            width: 100%; 
-            margin-bottom: 20px; 
-            background: white; 
-            padding: 15px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
-            box-sizing: border-box;
-        }
-        #word-display { font-size: 2em; font-weight: bold; color: #1a73e8; margin-bottom: 15px; }
+        .header { display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 20px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box; position: relative; }
+        
+        /* 단어장 버튼 */
+        #btn-dict-open { position: absolute; top: 15px; right: 15px; background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        
+        #word-display { font-size: 2em; font-weight: bold; color: #1a73e8; margin-bottom: 15px; margin-top: 10px; }
         .controls { display: flex; gap: 10px; margin-bottom: 10px; }
         button { font-size: 1.1em; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-check { background-color: #ff9800; color: white; }
         .btn-next { background-color: #4caf50; color: white; }
+        .btn-save { background-color: #1a73e8; color: white; display: none; }
+        .btn-cancel { background-color: #dc3545; color: white; display: none; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         #feedback { font-size: 1.2em; font-weight: bold; height: 1.5em; text-align: center; }
         
-        /* 키보드 레이아웃 (반응형 퍼센트 단위 적용) */
-        .keyboard { 
-            width: 100%; 
-            background: #e0e5ec; 
-            padding: 15px 10px; 
-            border-radius: 12px; 
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1); 
-            box-sizing: border-box;
-        }
-        
-        /* 숫자열 */
+        /* 키보드 레이아웃 */
+        .keyboard { width: 100%; background: #e0e5ec; padding: 15px 10px; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); box-sizing: border-box; }
         .row-num { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .key-num { 
-            width: 9%; 
-            aspect-ratio: 1.2 / 1; 
-            background: linear-gradient(to bottom, #fff, #e6e6e6); 
-            border: 1px solid #b3b3b3; 
-            border-radius: 4px; 
-            display: flex; justify-content: center; align-items: center; 
-            font-size: clamp(12px, 3.5vw, 16px); 
-            font-weight: bold; color: #555; 
-            box-shadow: 0 2px 2px rgba(0,0,0,0.1); 
-        }
-
-        /* 중앙 자음열 */
+        .key-num { width: 9%; aspect-ratio: 1.2 / 1; background: linear-gradient(to bottom, #fff, #e6e6e6); border: 1px solid #b3b3b3; border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: clamp(12px, 3.5vw, 16px); font-weight: bold; color: #555; box-shadow: 0 2px 2px rgba(0,0,0,0.1); }
         .row-middle { display: flex; justify-content: space-between; gap: 2%; width: 100%; }
         .hand { display: flex; justify-content: space-between; width: 49%; }
         .col { display: flex; flex-direction: column; justify-content: flex-start; gap: 4px; width: 18.5%; }
-        
-        /* 양쪽 끝 튀어나온 키 배열 조정 */
         .col.offset-left { margin-top: 10%; }
         .col.offset-right { margin-top: 10%; }
-
-        /* 기본 키 스타일 */
-        .key { 
-            width: 100%; 
-            aspect-ratio: 1 / 1; 
-            background: linear-gradient(to bottom, #fff, #f0f0f0); 
-            border: 1px solid #aaa; 
-            border-radius: 4px; 
-            display: flex; justify-content: center; align-items: center; 
-            font-size: clamp(12px, 3.5vw, 18px); 
-            font-weight: bold; color: #333; 
-            cursor: pointer; 
-            box-shadow: 0 3px 0 #ccc; 
-            transition: all 0.1s; 
-            box-sizing: border-box;
-        }
+        .key { width: 100%; aspect-ratio: 1 / 1; background: linear-gradient(to bottom, #fff, #f0f0f0); border: 1px solid #aaa; border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: clamp(12px, 3.5vw, 18px); font-weight: bold; color: #333; cursor: pointer; box-shadow: 0 3px 0 #ccc; box-sizing: border-box; }
         .key:active { transform: translateY(3px); box-shadow: 0 0 0 #ccc; }
         
-        /* 모음열 (엄지) */
         .row-bottom { display: flex; justify-content: center; margin-top: 15px; position: relative; width: 100%; }
         .thumb-arc { display: flex; justify-content: center; gap: 2%; width: 60%; }
         .key.thumb { width: 15%; aspect-ratio: 1 / 1.5; border-radius: 5px 5px 25px 25px; } 
         .thumb-down { margin-top: 8%; } 
         .key.space { width: 18%; aspect-ratio: 1.5 / 1; position: absolute; right: 2%; bottom: 0; border-radius: 8px; }
 
-        /* 선택 및 정답 상태 색상 */
         .key.selected { background: #1a73e8; color: white; border-color: #0d47a1; box-shadow: 0 3px 0 #0d47a1; }
         .key.correct-key { background: #28a745 !important; color: white !important; border-color: #1e7e34 !important; box-shadow: 0 3px 0 #1e7e34 !important; }
         .key.wrong-key { background: #dc3545 !important; color: white !important; border-color: #c82333 !important; box-shadow: 0 3px 0 #c82333 !important; }
@@ -114,16 +51,40 @@
 
         .text-success { color: #28a745; }
         .text-danger { color: #dc3545; }
+
+        /* 단어장 패널 스타일 */
+        #dict-panel { display: none; width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 20px; }
+        #dict-panel h3 { margin-top: 0; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        .word-list { list-style: none; padding: 0; margin: 0 0 20px 0; max-height: 50vh; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; }
+        .word-item { display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #eee; align-items: center; }
+        .word-item:last-child { border-bottom: none; }
+        .word-name { font-weight: bold; font-size: 1.1em; color: #1a73e8; }
+        .btn-delete { background: #dc3545; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; cursor: pointer; border: none; }
+        .dict-controls { display: flex; gap: 10px; justify-content: center; }
+        .dict-controls button { flex: 1; padding: 12px; }
     </style>
 </head>
 <body>
 
+    <div id="dict-panel">
+        <h3>📖 내 단어장 <button onclick="closeDict()" style="background:transparent; color:#666; font-size:1em; padding:0;">❌</button></h3>
+        <ul class="word-list" id="word-list">
+            </ul>
+        <div class="dict-controls">
+            <button class="btn-check" onclick="startAddingWord()">새 약어 추가하기</button>
+        </div>
+    </div>
+
     <div id="app">
-        <div class="header">
+        <div class="header" id="practice-header">
+            <button id="btn-dict-open" onclick="openDict()">📖 단어장</button>
             <div id="word-display">단어 준비 중...</div>
             <div class="controls">
                 <button class="btn-check" id="btn-check" onclick="checkAnswer()">정답확인</button>
                 <button class="btn-next" id="btn-next" onclick="nextQuestion()" disabled>다음 문제</button>
+                
+                <button class="btn-save" id="btn-save" onclick="saveNewWord()">저장하기</button>
+                <button class="btn-cancel" id="btn-cancel" onclick="cancelAdding()">취소</button>
             </div>
             <div id="feedback"></div>
         </div>
@@ -186,21 +147,30 @@
     </div>
 
     <script>
-        // 연습할 약어 데이터 세팅
-        const dictionary = [
+        // 기본 약어 데이터 (로컬 스토리지에 데이터가 없을 때만 사용)
+        const defaultDictionary = [
             { word: "대한민국", keys: ["L_ㄷ", "L_ㅎ", "V_ㅏ", "R_ㅁ", "R_ㄱ"] },
-            { word: "그래서", keys: ["L_ㄱ", "L_ㅅ", "V_ㅓ", "V_ㅣ"] }, 
-            { word: "국회의원", keys: ["L_ㄱ", "L_ㅎ", "V_ㅜ", "R_ㅇ"] },
-            { word: "감사합니다", keys: ["L_ㄱ", "V_ㅏ", "R_ㅁ", "L_ㅅ", "L_ㅎ", "V_ㅏ", "R_ㅂ", "L_ㄴ", "V_ㅣ", "R_ㄷ"] } 
+            { word: "그래서", keys: ["L_ㄱ", "L_ㅅ", "V_ㅓ", "V_ㅣ"] }
         ];
+
+        // 로컬 스토리지에서 단어장 불러오기
+        let dictionary = JSON.parse(localStorage.getItem('stenoDict'));
+        if (!dictionary || dictionary.length === 0) {
+            dictionary = [...defaultDictionary];
+            saveDictToStorage();
+        }
 
         let currentQuestion = null;
         let selectedKeys = new Set();
         let isAnswerChecked = false;
+        
+        // 상태: 'practice' (연습 모드) 또는 'adding' (새 단어 추가 모드)
+        let appMode = 'practice'; 
+        let newWordToSave = '';
 
         document.querySelectorAll('.key, .key-num').forEach(keyEl => {
             keyEl.addEventListener('click', () => {
-                if (isAnswerChecked) return;
+                if (isAnswerChecked && appMode === 'practice') return;
                 
                 const keyValue = keyEl.getAttribute('data-key');
                 if (selectedKeys.has(keyValue)) {
@@ -213,14 +183,118 @@
             });
         });
 
-        function nextQuestion() {
+        // ------------------- 단어장 관리 로직 -------------------
+        function saveDictToStorage() {
+            localStorage.setItem('stenoDict', JSON.stringify(dictionary));
+        }
+
+        function openDict() {
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('dict-panel').style.display = 'block';
+            renderDictList();
+        }
+
+        function closeDict() {
+            document.getElementById('dict-panel').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            if(dictionary.length > 0) nextQuestion();
+        }
+
+        function renderDictList() {
+            const listEl = document.getElementById('word-list');
+            listEl.innerHTML = '';
+            
+            if (dictionary.length === 0) {
+                listEl.innerHTML = '<li class="word-item" style="color:#888; text-align:center;">저장된 단어가 없습니다.</li>';
+                return;
+            }
+
+            dictionary.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'word-item';
+                li.innerHTML = `
+                    <span class="word-name">${item.word}</span>
+                    <button class="btn-delete" onclick="deleteWord(${index})">삭제</button>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        function deleteWord(index) {
+            if(confirm(`'${dictionary[index].word}' 단어를 삭제하시겠습니까?`)) {
+                dictionary.splice(index, 1);
+                saveDictToStorage();
+                renderDictList();
+            }
+        }
+
+        function startAddingWord() {
+            const word = prompt("추가할 단어나 약어를 입력하세요:");
+            if (!word || word.trim() === "") return;
+
+            // UI 변경: 추가 모드로 전환
+            appMode = 'adding';
+            newWordToSave = word.trim();
+            
+            document.getElementById('dict-panel').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            
+            document.getElementById('btn-dict-open').style.display = 'none';
+            document.getElementById('btn-check').style.display = 'none';
+            document.getElementById('btn-next').style.display = 'none';
+            document.getElementById('btn-save').style.display = 'block';
+            document.getElementById('btn-cancel').style.display = 'block';
+
+            document.getElementById('word-display').innerText = `[${newWordToSave}] 입력할 키 터치`;
+            document.getElementById('feedback').innerText = "해당 약어에 맞는 키들을 선택 후 저장하세요.";
+            document.getElementById('feedback').className = "";
+
+            resetKeys();
+        }
+
+        function saveNewWord() {
+            if (selectedKeys.size === 0) {
+                alert("키를 하나 이상 선택해주세요!");
+                return;
+            }
+
+            dictionary.push({
+                word: newWordToSave,
+                keys: Array.from(selectedKeys)
+            });
+            saveDictToStorage();
+            
+            alert(`'${newWordToSave}' 약어가 성공적으로 저장되었습니다!`);
+            cancelAdding(); // 기본 UI로 복귀
+            openDict(); // 단어장 목록 띄워주기
+        }
+
+        function cancelAdding() {
+            appMode = 'practice';
+            document.getElementById('btn-dict-open').style.display = 'block';
+            document.getElementById('btn-check').style.display = 'block';
+            document.getElementById('btn-save').style.display = 'none';
+            document.getElementById('btn-cancel').style.display = 'none';
+            resetKeys();
+        }
+
+        // ------------------- 연습 모드 로직 -------------------
+        function resetKeys() {
             selectedKeys.clear();
             isAnswerChecked = false;
-            
             document.querySelectorAll('.key, .key-num').forEach(keyEl => {
                 keyEl.classList.remove('selected', 'correct-key', 'wrong-key', 'missed-key');
             });
-            
+        }
+
+        function nextQuestion() {
+            if(dictionary.length === 0) {
+                document.getElementById('word-display').innerText = "단어장을 먼저 추가해주세요!";
+                document.getElementById('feedback').innerText = "";
+                return;
+            }
+
+            resetKeys();
             document.getElementById('feedback').innerText = '';
             document.getElementById('btn-check').disabled = false;
             document.getElementById('btn-next').disabled = true;
@@ -231,7 +305,7 @@
         }
 
         function checkAnswer() {
-            if (!currentQuestion) return;
+            if (!currentQuestion || dictionary.length === 0) return;
             if (selectedKeys.size === 0) {
                 alert("키를 하나 이상 터치해주세요.");
                 return;
@@ -270,7 +344,9 @@
             }
         }
 
-        nextQuestion();
+        // 앱 시작
+        if(dictionary.length > 0) nextQuestion();
+        else openDict(); // 단어가 없으면 단어장부터 엶
     </script>
 </body>
 </html>

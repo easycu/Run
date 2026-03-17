@@ -3,571 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon OX Run</title>
+    <title>소리자바 약어 키보드 연습기</title>
     <style>
-        :root {
-            --neon-blue: #00f3ff;
-            --neon-pink: #bc13fe;
-            --bg-color: #050510;
-            --grid-color: rgba(188, 19, 254, 0.3);
-        }
-
-        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 10px; touch-action: manipulation; }
+        #app { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         
-        body {
-            margin: 0; padding: 0;
-            background-color: var(--bg-color);
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-            overflow: hidden;
-            height: 100vh;
-            display: flex; flex-direction: column;
-        }
+        #word-display { font-size: 2.2em; font-weight: bold; color: #1a73e8; margin-bottom: 20px; min-height: 1.2em; }
+        
+        /* 키보드 레이아웃 스타일 */
+        .keyboard-area { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+        .hands-area { display: flex; justify-content: space-between; gap: 10px; }
+        .hand-section { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; background: #f8f9fa; padding: 10px; border-radius: 8px; }
+        .vowel-section { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; background: #e9ecef; padding: 10px; border-radius: 8px; }
+        
+        .section-title { grid-column: 1 / -1; font-size: 0.9em; color: #666; margin-bottom: 5px; }
 
-        /* === 3D 엔진 (Perspective) === */
-        .scene {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            perspective: 800px; /* 원근감 깊이 */
-            overflow: hidden;
-            background: linear-gradient(to bottom, #000 0%, #1a0b2e 100%);
-        }
-
-        /* 바닥 (무한 스크롤 그리드) */
-        .floor {
-            position: absolute;
-            bottom: -50%;
-            left: -50%;
-            width: 200%;
-            height: 100%;
-            background-image: 
-                linear-gradient(var(--grid-color) 2px, transparent 2px),
-                linear-gradient(90deg, var(--grid-color) 2px, transparent 2px);
-            background-size: 100px 100px;
-            background-position: 0 0;
-            transform: rotateX(60deg); /* 바닥 눕히기 */
-            animation: moveGrid 0.5s linear infinite; /* 속도감 핵심 */
-            z-index: 1;
-        }
-
-        /* 바닥이 움직이는 애니메이션 (템플런 효과) */
-        @keyframes moveGrid {
-            from { background-position: 0 0; }
-            to { background-position: 0 100px; }
-        }
-
-        /* 지평선 효과 */
-        .horizon-glow {
-            position: absolute;
-            top: 30%;
-            left: 0;
-            width: 100%;
-            height: 100px;
-            background: linear-gradient(to top, var(--neon-pink), transparent);
-            opacity: 0.5;
-            filter: blur(20px);
-            z-index: 0;
-        }
-
-        /* === 게임 오브젝트 === */
-        /* 플레이어 (3D 시점 느낌) */
-        .hero {
-            position: absolute;
-            bottom: 10%;
-            left: 50%;
-            width: 80px;
-            height: 120px;
-            transform: translateX(-50%);
-            font-size: 5rem;
-            text-align: center;
-            z-index: 100;
-            transition: left 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 부드러운 이동 */
-            filter: drop-shadow(0 0 10px var(--neon-blue));
-            animation: runBob 0.3s infinite alternate;
-        }
-        @keyframes runBob { from { bottom: 10%; } to { bottom: 11%; } }
-
-        /* 다가오는 게이트 (O/X) */
-        .gate-container {
-            position: absolute;
-            top: 40%; /* 지평선 부근에서 시작 */
-            left: 50%;
-            transform: translateX(-50%) scale(0.1);
-            display: flex;
-            gap: 200px; /* 멀리서는 간격이 좁아보임 */
-            z-index: 50;
-            opacity: 0;
+        .key { 
+            background-color: #ffffff; border: 2px solid #ddd; border-radius: 8px; 
+            padding: 15px 5px; font-size: 1.2em; font-weight: bold; color: #333;
+            cursor: pointer; user-select: none; transition: all 0.1s;
         }
         
-        /* 게이트 애니메이션 (JS로 제어) */
-        .gate {
-            width: 150px;
-            height: 200px;
-            border: 5px solid white;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 5rem;
-            font-weight: bold;
-            background: rgba(0,0,0,0.5);
-            box-shadow: 0 0 20px currentColor;
-        }
-        .gate.o { color: var(--neon-blue); border-color: var(--neon-blue); }
-        .gate.x { color: var(--neon-pink); border-color: var(--neon-pink); }
+        /* 키 상태별 색상 */
+        .key.selected { background-color: #1a73e8; color: white; border-color: #1a73e8; }
+        .key.correct-key { background-color: #28a745 !important; color: white !important; border-color: #28a745 !important; box-shadow: 0 0 8px rgba(40,167,69,0.5); }
+        .key.wrong-key { background-color: #dc3545 !important; color: white !important; border-color: #dc3545 !important; }
+        .key.missed-key { border: 3px dashed #28a745 !important; color: #28a745 !important; font-weight: 900; }
 
-        /* 타격 효과 (화면 흔들림) */
-        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-2px, 0, 0); }
-            20%, 80% { transform: translate3d(4px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
-            40%, 60% { transform: translate3d(8px, 0, 0); }
-        }
-
-        /* === UI 레이어 (HUD) === */
-        .ui-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 200;
-            pointer-events: none; /* 게임 터치 방해 안 함 */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .top-hud {
-            width: 100%; padding: 15px;
-            display: flex; justify-content: space-between;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(5px);
-            border-bottom: 1px solid var(--neon-blue);
-        }
-
-        .question-card {
-            background: rgba(255, 255, 255, 0.95);
-            color: #000;
-            padding: 20px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 600px;
-            margin-top: 20px;
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            box-shadow: 0 0 30px var(--neon-blue);
-            transform: translateY(-20px);
-            opacity: 0;
-            transition: all 0.5s;
-        }
-        .question-card.show { transform: translateY(0); opacity: 1; }
-
-        .touch-controls {
-            position: absolute; bottom: 0; width: 100%; height: 100%;
-            display: flex; pointer-events: auto; z-index: 300;
-        }
-        .touch-zone { flex: 1; opacity: 0; } /* 투명 터치 영역 */
-
-        /* 일반 UI 스타일 (버튼 등) */
-        .screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 5, 16, 0.95);
-            display: none; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 500;
-        }
-        .screen.active { display: flex; }
+        /* 컨트롤 버튼 */
+        .controls { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
+        button { font-size: 1.2em; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-check { background-color: #ff9800; color: white; }
+        .btn-next { background-color: #4caf50; color: white; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
         
-        .neon-btn {
-            background: transparent;
-            color: white;
-            border: 2px solid var(--neon-blue);
-            padding: 15px 40px;
-            font-size: 1.5rem;
-            margin: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            text-shadow: 0 0 10px var(--neon-blue);
-            box-shadow: 0 0 10px var(--neon-blue), inset 0 0 10px var(--neon-blue);
-            transition: 0.3s;
-        }
-        .neon-btn:hover { background: var(--neon-blue); color: #000; }
-        
-        /* 텍스트 영역 */
-        textarea { width: 90%; height: 150px; background: #111; color: white; border: 1px solid var(--neon-pink); }
+        #feedback { margin-top: 15px; font-size: 1.3em; font-weight: bold; min-height: 1.5em; }
+        .text-success { color: #28a745; }
+        .text-danger { color: #dc3545; }
     </style>
 </head>
 <body>
-    <div class="scene" id="scene">
-        <div class="horizon-glow"></div>
-        <div class="floor"></div>
-        
-        <div id="gate-group" class="gate-container">
-            <div class="gate o">O</div>
-            <div class="gate x">X</div>
-        </div>
+    <div id="app">
+        <h2>약어 키보드 연습</h2>
+        <div id="word-display">단어 준비 중...</div>
 
-        <div id="hero" class="hero">🏃</div>
-    </div>
-
-    <div id="game-ui" class="ui-layer" style="display:none;">
-        <div class="top-hud">
-            <div style="color:var(--neon-blue); font-weight:bold;">SCORE: <span id="score">0</span></div>
-            <div style="color:var(--neon-pink)" id="lives">❤️❤️❤️</div>
-        </div>
-        
-        <div style="width:100%; height:6px; background:rgba(255,255,255,0.2);">
-            <div id="timer-bar" style="width:100%; height:100%; background:var(--neon-blue); box-shadow:0 0 10px var(--neon-blue); transition: width 0.1s linear;"></div>
-        </div>
-
-        <div id="q-card" class="question-card">
-            Ready to Run?
-        </div>
-    </div>
-
-    <div id="controls" class="touch-controls" style="display:none;">
-        <div class="touch-zone" onclick="handleInput('O')"></div> <div class="touch-zone" onclick="handleInput('X')"></div> </div>
-
-    <div id="main-screen" class="screen active">
-        <h1 style="font-size:3.5rem; text-shadow: 0 0 20px var(--neon-pink); margin-bottom:0; font-style:italic;">NEON RUN</h1>
-        <p style="color:var(--neon-blue); letter-spacing: 5px; margin-bottom: 40px; text-shadow: 0 0 10px var(--neon-blue);">OX QUIZ RUSH</p>
-        
-        <div style="margin-bottom: 30px; font-size: 1.2rem; border: 1px solid var(--neon-blue); padding: 10px 20px; border-radius: 20px; box-shadow: 0 0 15px var(--neon-blue) inset;">
-            🏆 BEST: <span id="high-score-display" style="color:white; font-weight:bold;">0</span>
-        </div>
-
-        <button class="neon-btn" onclick="gameStart()">GAME START</button>
-        <button class="neon-btn" style="font-size:1rem; border-color:#666; color:#aaa; margin-top:20px;" onclick="showManager()">DATA MANAGER</button>
-    </div>
-
-    <div id="result-screen" class="screen">
-        <h1 style="color:var(--neon-pink); text-shadow: 0 0 20px red;">GAME OVER</h1>
-        <div style="font-size:2rem; margin-bottom:20px;">
-            FINAL SCORE: <span id="final-score" style="color:var(--neon-blue)">0</span>
-        </div>
-        
-        <div id="review-box" style="width:90%; height:40%; overflow-y:auto; background:rgba(255,255,255,0.1); border:1px solid #555; padding:15px; margin-bottom:20px; text-align:left; border-radius:10px;">
+        <div class="keyboard-area">
+            <div class="hands-area">
+                <div class="hand-section" id="left-hand">
+                    <div class="section-title">왼손 (초성)</div>
+                    <div class="key" data-key="L_ㅊ">ㅊ</div><div class="key" data-key="L_ㅍ">ㅍ</div><div class="key" data-key="L_ㅌ">ㅌ</div><div class="key" data-key="L_ㅋ">ㅋ</div>
+                    <div class="key" data-key="L_ㅅ">ㅅ</div><div class="key" data-key="L_ㅁ">ㅁ</div><div class="key" data-key="L_ㄴ">ㄴ</div><div class="key" data-key="L_ㅇ">ㅇ</div>
+                    <div class="key" data-key="L_ㅂ">ㅂ</div><div class="key" data-key="L_ㅈ">ㅈ</div><div class="key" data-key="L_ㄷ">ㄷ</div><div class="key" data-key="L_ㄱ">ㄱ</div>
+                    <div class="key" data-key="L_ㅎ">ㅎ</div><div class="key" data-key="L_ㄹ">ㄹ</div>
+                </div>
+                
+                <div class="hand-section" id="right-hand">
+                    <div class="section-title">오른손 (종성)</div>
+                    <div class="key" data-key="R_ㅊ">ㅊ</div><div class="key" data-key="R_ㅍ">ㅍ</div><div class="key" data-key="R_ㅌ">ㅌ</div><div class="key" data-key="R_ㅋ">ㅋ</div>
+                    <div class="key" data-key="R_ㅅ">ㅅ</div><div class="key" data-key="R_ㅁ">ㅁ</div><div class="key" data-key="R_ㄴ">ㄴ</div><div class="key" data-key="R_ㅇ">ㅇ</div>
+                    <div class="key" data-key="R_ㅂ">ㅂ</div><div class="key" data-key="R_ㅈ">ㅈ</div><div class="key" data-key="R_ㄷ">ㄷ</div><div class="key" data-key="R_ㄱ">ㄱ</div>
+                    <div class="key" data-key="R_ㅎ">ㅎ</div><div class="key" data-key="R_ㄹ">ㄹ</div>
+                </div>
             </div>
 
-        <div style="display:flex;">
-            <button class="neon-btn" onclick="location.reload()">HOME</button>
-            <button class="neon-btn" onclick="gameStart()">RETRY</button>
+            <div class="vowel-section" id="vowels">
+                <div class="section-title">엄지 (모음 및 기호)</div>
+                <div class="key" data-key="V_ㅗ">ㅗ</div><div class="key" data-key="V_ㅓ">ㅓ</div><div class="key" data-key="V_ㅏ">ㅏ</div><div class="key" data-key="V_ㅣ">ㅣ</div>
+                <div class="key" data-key="V_ㅡ">ㅡ</div><div class="key" data-key="V_ㅜ">ㅜ</div><div class="key" data-key="V_ㅐ">ㅐ</div><div class="key" data-key="V_ㅔ">ㅔ</div>
+                <div class="key" data-key="V_ㅛ">ㅛ</div><div class="key" data-key="V_ㅕ">ㅕ</div><div class="key" data-key="V_ㅑ">ㅑ</div><div class="key" data-key="V_ㅠ">ㅠ</div>
+            </div>
         </div>
+
+        <div class="controls">
+            <button class="btn-check" id="btn-check" onclick="checkAnswer()">정답확인</button>
+            <button class="btn-next" id="btn-next" onclick="nextQuestion()" disabled>다음 문제</button>
+        </div>
+        
+        <div id="feedback"></div>
     </div>
 
-    <div id="manager-screen" class="screen">
-        <h2 style="color:var(--neon-blue)">ADD QUESTIONS</h2>
-        <p style="font-size:0.9rem; color:#aaa; text-align:center;">
-            Excel/Sheets 복사 붙여넣기<br>
-            [문제] [정답(O/X)] [해설]
-        </p>
-        
-        <textarea id="data-input" placeholder="예시:
-사과는 빨갛다	O	빨간색임
-바나나는 검다	X	노란색임"></textarea>
-        
-        <div style="margin-top:20px;">
-            <button class="neon-btn" style="border-color:var(--neon-blue)" onclick="importData()">SAVE DATA</button>
-            <button class="neon-btn" style="border-color:var(--neon-pink)" onclick="clearData()">RESET ALL</button>
-        </div>
-        <button class="neon-btn" style="border-color:#666; font-size:1rem; margin-top:20px;" onclick="location.reload()">BACK</button>
-    </div>
+    <script>
+        // 연습할 약어 데이터 세팅
+        // keys 배열 안에 정답이 되는 키의 data-key 값을 적어주세요.
+        // L_ (왼손 초성), R_ (오른손 종성), V_ (엄지 모음)
+        const dictionary = [
+            { word: "대한민국", keys: ["L_ㄷ", "L_ㅎ", "V_ㅏ", "R_ㅁ", "R_ㄱ"] }, // 예시 데이터입니다.
+            { word: "그리고", keys: ["L_ㄱ", "V_ㅡ", "V_ㅣ", "R_ㄱ"] },
+            { word: "그래서", keys: ["L_ㄱ", "L_ㅅ", "V_ㅐ"] },
+            { word: "국회의원", keys: ["L_ㄱ", "L_ㅎ", "V_ㅜ", "R_ㅇ"] }
+        ];
 
-<script>
-    /* === 1. 게임 데이터 & 설정 === */
-    const DB_KEY = 'neonRunDB';
-    const SCORE_KEY = 'neonRunBest';
-    
-    // 기본 샘플 데이터 (비어있을 경우 사용)
-    const defaultData = [
-        { q: "HTML은 프로그래밍 언어다.", a: "X", desc: "HTML은 마크업 언어입니다." },
-        { q: "자바스크립트에서 '==='는 타입까지 비교한다.", a: "O", desc: "엄격한 동등 연산자입니다." },
-        { q: "CSS의 C는 Computer다.", a: "X", desc: "Cascading Style Sheets입니다." },
-        { q: "지구는 둥글다.", a: "O", desc: "네, 타원형에 가깝습니다." },
-        { q: "임진왜란은 1592년에 일어났다.", a: "O", desc: "1592년 발발했습니다." }
-    ];
+        let currentQuestion = null;
+        let selectedKeys = new Set();
+        let isAnswerChecked = false;
 
-    let questions = [];
-    let gameQList = []; // 게임용 셔플 리스트
-    let currentIdx = 0;
-    let score = 0;
-    let lives = 3;
-    let isPlaying = false;
-    let canInput = false; // 정답 입력 가능 여부
-    let timerId = null;
-    let history = []; // 복습용
-
-    /* === 2. 초기화 및 유틸리티 === */
-    window.onload = () => {
-        loadData();
-        document.getElementById('high-score-display').innerText = localStorage.getItem(SCORE_KEY) || 0;
-    };
-
-    function loadData() {
-        const json = localStorage.getItem(DB_KEY);
-        questions = json ? JSON.parse(json) : JSON.parse(JSON.stringify(defaultData));
-    }
-
-    function shuffle(arr) {
-        return arr.sort(() => Math.random() - 0.5);
-    }
-
-    /* === 3. 게임 루프 === */
-    function gameStart() {
-        if(questions.length < 1) { alert("문제가 없습니다!"); return; }
-        
-        // 상태 초기화
-        score = 0;
-        lives = 3;
-        currentIdx = 0;
-        history = [];
-        isPlaying = true;
-        gameQList = shuffle(JSON.parse(JSON.stringify(questions))); // 깊은 복사 후 섞기
-
-        // UI 초기화
-        document.getElementById('score').innerText = 0;
-        updateLives();
-        
-        document.getElementById('main-screen').classList.remove('active');
-        document.getElementById('result-screen').classList.remove('active');
-        document.getElementById('game-ui').style.display = 'flex';
-        document.getElementById('controls').style.display = 'flex';
-        
-        // 캐릭터 초기화
-        const hero = document.getElementById('hero');
-        hero.style.left = '50%';
-        hero.innerText = '🏃';
-
-        nextLevel();
-    }
-
-    function nextLevel() {
-        if(!isPlaying) return;
-        if(lives <= 0 || currentIdx >= gameQList.length) {
-            gameOver();
-            return;
-        }
-
-        const qData = gameQList[currentIdx];
-        const card = document.getElementById('q-card');
-        const gateGroup = document.getElementById('gate-group');
-        const timerBar = document.getElementById('timer-bar');
-
-        // 1. 문제 표시
-        card.innerText = `Q. ${qData.q}`;
-        card.classList.remove('show');
-        void card.offsetWidth; // 리플로우 강제 (애니메이션 리셋)
-        card.classList.add('show');
-
-        // 2. 게이트(장애물) 초기화 및 발사
-        // 멀리(scale 0.1)에서 시작
-        gateGroup.style.transition = 'none';
-        gateGroup.style.top = '40%';
-        gateGroup.style.transform = 'translateX(-50%) scale(0.1)';
-        gateGroup.style.opacity = '0.3';
-        
-        // 입력 대기
-        canInput = true;
-
-        // 3. 타이머 & 게이트 다가오기 애니메이션 시작 (약간의 딜레이 후)
-        setTimeout(() => {
-            if(!isPlaying) return;
-            
-            // 게이트가 10초 동안 천천히 다가옴
-            gateGroup.style.transition = 'all 10s linear';
-            gateGroup.style.top = '120%'; // 화면 밖으로
-            gateGroup.style.transform = 'translateX(-50%) scale(1.5)'; // 엄청 커짐
-            gateGroup.style.opacity = '1';
-
-            // 타이머 바 줄어들기
-            timerBar.style.transition = 'width 10s linear';
-            timerBar.style.width = '0%';
-            timerBar.style.background = 'var(--neon-blue)';
-
-            // 10초 뒤 충돌 처리 (시간 초과)
-            clearTimeout(timerId);
-            timerId = setTimeout(() => {
-                if(isPlaying && canInput) handleTimeOut();
-            }, 10000);
-
-        }, 100);
-    }
-
-    /* === 4. 입력 처리 (템플런 액션) === */
-    function handleInput(choice) {
-        if(!canInput || !isPlaying) return;
-        canInput = false; // 중복 입력 방지
-        clearTimeout(timerId); // 타이머 정지
-
-        const hero = document.getElementById('hero');
-        const gateGroup = document.getElementById('gate-group');
-        const timerBar = document.getElementById('timer-bar');
-        
-        // 1. 캐릭터 이동 액션 (왼쪽/오른쪽 슬라이드)
-        hero.style.left = (choice === 'O') ? '20%' : '80%';
-        
-        // 2. 정답 확인
-        const qData = gameQList[currentIdx];
-        const isCorrect = (qData.a.toUpperCase() === choice);
-
-        // 기록
-        history.push({ q: qData, user: choice, correct: isCorrect });
-
-        // 3. 시각적 피드백 (Fast Forward 효과)
-        // 게이트가 순식간에 지나가게 만듦
-        timerBar.style.transition = 'none'; // 바 멈춤
-        
-        gateGroup.style.transition = 'all 0.3s ease-in'; // 0.3초만에 휙 지나감
-        gateGroup.style.top = '150%';
-        gateGroup.style.transform = 'translateX(-50%) scale(2)';
-
-        if(isCorrect) {
-            // 정답: 딩동댕! 
-            score += 10;
-            document.getElementById('score').innerText = score;
-            hero.innerText = '⭕'; // 잠시 얼굴 바뀜
-            
-            // 네온 효과 번쩍임
-            document.body.style.boxShadow = "inset 0 0 50px var(--neon-blue)";
-        } else {
-            // 오답: 쾅!
-            lives--;
-            updateLives();
-            hero.innerText = '💥';
-            
-            // 화면 흔들림 효과
-            document.body.classList.add('shake');
-            document.body.style.boxShadow = "inset 0 0 50px red";
-        }
-
-        // 4. 다음 단계로
-        setTimeout(() => {
-            document.body.classList.remove('shake');
-            document.body.style.boxShadow = "none";
-            hero.innerText = '🏃'; // 복구
-            hero.style.left = '50%'; // 중앙 복귀
-            
-            // 타이머 바 리셋
-            timerBar.style.transition = 'none';
-            timerBar.style.width = '100%';
-
-            currentIdx++;
-            nextLevel();
-        }, 800); // 0.8초 후 다음 문제
-    }
-
-    function handleTimeOut() {
-        canInput = false;
-        lives--;
-        updateLives();
-        
-        const qData = gameQList[currentIdx];
-        history.push({ q: qData, user: "⏰", correct: false });
-
-        // 화면 붉게 깜빡임
-        document.body.classList.add('shake');
-        
-        setTimeout(() => {
-            document.body.classList.remove('shake');
-            currentIdx++;
-            
-            // 타이머 바 리셋
-            const timerBar = document.getElementById('timer-bar');
-            timerBar.style.transition = 'none';
-            timerBar.style.width = '100%';
-            
-            nextLevel();
-        }, 1000);
-    }
-
-    function updateLives() {
-        let h = "";
-        for(let i=0; i<lives; i++) h += "❤️";
-        for(let i=0; i<3-lives; i++) h += "💀";
-        document.getElementById('lives').innerText = h;
-    }
-
-    /* === 5. 게임 종료 및 관리 === */
-    function gameOver() {
-        isPlaying = false;
-        document.getElementById('game-ui').style.display = 'none';
-        document.getElementById('controls').style.display = 'none';
-        
-        // 최고 점수 갱신
-        const oldBest = localStorage.getItem(SCORE_KEY) || 0;
-        if(score > oldBest) {
-            localStorage.setItem(SCORE_KEY, score);
-        }
-        document.getElementById('high-score-display').innerText = Math.max(score, oldBest);
-
-        // 결과 화면 구성
-        document.getElementById('final-score').innerText = score;
-        const reviewBox = document.getElementById('review-box');
-        reviewBox.innerHTML = "";
-        
-        history.forEach((h, i) => {
-            const div = document.createElement('div');
-            div.style.marginBottom = "15px";
-            div.style.borderBottom = "1px solid #444";
-            div.style.paddingBottom = "5px";
-            div.style.color = h.correct ? "var(--neon-blue)" : "#ff6b6b";
-            
-            div.innerHTML = `
-                <div style="color:white; font-size:0.9rem;">${i+1}. ${h.q.q}</div>
-                <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:0.8rem;">
-                    <span>내 답: ${h.user}</span>
-                    <span>정답: ${h.q.a}</span>
-                </div>
-                <div style="color:#aaa; font-size:0.8rem; margin-top:2px;">💡 ${h.q.desc}</div>
-            `;
-            reviewBox.appendChild(div);
+        // 키 터치(클릭) 이벤트 설정
+        document.querySelectorAll('.key').forEach(keyEl => {
+            keyEl.addEventListener('click', () => {
+                if (isAnswerChecked) return; // 정답 확인 후에는 입력 방지
+                
+                const keyValue = keyEl.getAttribute('data-key');
+                if (selectedKeys.has(keyValue)) {
+                    selectedKeys.delete(keyValue);
+                    keyEl.classList.remove('selected');
+                } else {
+                    selectedKeys.add(keyValue);
+                    keyEl.classList.add('selected');
+                }
+            });
         });
 
-        document.getElementById('result-screen').classList.add('active');
-    }
+        function nextQuestion() {
+            // 초기화
+            selectedKeys.clear();
+            isAnswerChecked = false;
+            document.querySelectorAll('.key').forEach(keyEl => {
+                keyEl.className = 'key'; // 모든 상태 클래스 제거
+            });
+            document.getElementById('feedback').innerText = '';
+            document.getElementById('btn-check').disabled = false;
+            document.getElementById('btn-next').disabled = true;
 
-    /* === 6. 데이터 관리자 (엑셀 붙여넣기) === */
-    function showManager() {
-        document.getElementById('main-screen').classList.remove('active');
-        document.getElementById('manager-screen').classList.add('active');
-    }
+            // 랜덤 단어 선택
+            const randomIndex = Math.floor(Math.random() * dictionary.length);
+            currentQuestion = dictionary[randomIndex];
+            document.getElementById('word-display').innerText = currentQuestion.word;
+        }
 
-    function importData() {
-        const txt = document.getElementById('data-input').value;
-        const lines = txt.split('\n');
-        let count = 0;
-        const newQs = [];
+        function checkAnswer() {
+            if (!currentQuestion) return;
+            if (selectedKeys.size === 0) {
+                alert("키를 하나 이상 선택해주세요.");
+                return;
+            }
 
-        for(let line of lines) {
-            const parts = line.split('\t'); // 탭 구분
-            if(parts.length >= 2) {
-                const q = parts[0].trim();
-                const a = parts[1].trim().toUpperCase();
-                const d = parts[2] ? parts[2].trim() : "";
-                if(q && (a==='O' || a==='X')) {
-                    newQs.push({q:q, a:a, desc:d});
-                    count++;
+            isAnswerChecked = true;
+            document.getElementById('btn-check').disabled = true;
+            document.getElementById('btn-next').disabled = false;
+
+            const correctKeys = new Set(currentQuestion.keys);
+            let isPerfect = true;
+
+            // 사용자가 선택한 키 검사
+            document.querySelectorAll('.key').forEach(keyEl => {
+                const keyValue = keyEl.getAttribute('data-key');
+                const isSelected = selectedKeys.has(keyValue);
+                const isCorrect = correctKeys.has(keyValue);
+
+                if (isSelected && isCorrect) {
+                    // 맞게 누른 키 (초록색)
+                    keyEl.classList.add('correct-key');
+                } else if (isSelected && !isCorrect) {
+                    // 잘못 누른 키 (빨간색)
+                    keyEl.classList.add('wrong-key');
+                    isPerfect = false;
+                } else if (!isSelected && isCorrect) {
+                    // 눌렀어야 했는데 안 누른 키 (초록색 점선 테두리)
+                    keyEl.classList.add('missed-key');
+                    isPerfect = false;
                 }
+            });
+
+            const feedbackEl = document.getElementById('feedback');
+            if (isPerfect) {
+                feedbackEl.innerText = "정답입니다! 완벽해요. 🎉";
+                feedbackEl.className = "text-success";
+            } else {
+                feedbackEl.innerText = "오답입니다. 표시된 키 배열을 확인해보세요.";
+                feedbackEl.className = "text-danger";
             }
         }
 
-        if(count > 0) {
-            questions = questions.concat(newQs);
-            localStorage.setItem(DB_KEY, JSON.stringify(questions));
-            alert(`${count} 문제 추가 완료!`);
-            document.getElementById('data-input').value = "";
-        } else {
-            alert("형식이 올바르지 않습니다.\n문제 [탭] 정답 [탭] 해설");
-        }
-    }
-
-    function clearData() {
-        if(confirm("모든 데이터를 삭제하고 초기화하시겠습니까?")) {
-            localStorage.removeItem(DB_KEY);
-            loadData();
-            alert("초기화되었습니다.");
-        }
-    }
-</script>
+        // 앱 시작
+        nextQuestion();
+    </script>
 </body>
 </html>

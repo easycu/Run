@@ -5,102 +5,156 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>소리자바 약어 키보드 연습기</title>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 10px; touch-action: manipulation; }
-        #app { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        /* 기본 스타일 */
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #d9e0e7; margin: 0; padding: 0; touch-action: manipulation; user-select: none; }
         
-        #word-display { font-size: 2.2em; font-weight: bold; color: #1a73e8; margin-bottom: 20px; min-height: 1.2em; }
-        
-        /* 키보드 레이아웃 스타일 */
-        .keyboard-area { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
-        .hands-area { display: flex; justify-content: space-between; gap: 10px; }
-        .hand-section { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; background: #f8f9fa; padding: 10px; border-radius: 8px; }
-        .vowel-section { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; background: #e9ecef; padding: 10px; border-radius: 8px; }
-        
-        .section-title { grid-column: 1 / -1; font-size: 0.9em; color: #666; margin-bottom: 5px; }
-
-        .key { 
-            background-color: #ffffff; border: 2px solid #ddd; border-radius: 8px; 
-            padding: 15px 5px; font-size: 1.2em; font-weight: bold; color: #333;
-            cursor: pointer; user-select: none; transition: all 0.1s;
+        /* 세로 모드 경고창 */
+        #portrait-warning { display: none; height: 100vh; flex-direction: column; justify-content: center; align-items: center; background: #333; color: white; font-size: 1.5em; text-align: center; padding: 20px; z-index: 9999; }
+        @media screen and (orientation: portrait) {
+            #portrait-warning { display: flex; }
+            #app { display: none !important; }
         }
-        
-        /* 키 상태별 색상 */
-        .key.selected { background-color: #1a73e8; color: white; border-color: #1a73e8; }
-        .key.correct-key { background-color: #28a745 !important; color: white !important; border-color: #28a745 !important; box-shadow: 0 0 8px rgba(40,167,69,0.5); }
-        .key.wrong-key { background-color: #dc3545 !important; color: white !important; border-color: #dc3545 !important; }
-        .key.missed-key { border: 3px dashed #28a745 !important; color: #28a745 !important; font-weight: 900; }
 
-        /* 컨트롤 버튼 */
-        .controls { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
-        button { font-size: 1.2em; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        /* 가로 모드 앱 레이아웃 */
+        #app { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; padding: 10px; box-sizing: border-box; }
+        
+        /* 상단 상태창 */
+        .header { display: flex; justify-content: space-between; align-items: center; width: 90%; max-width: 800px; margin-bottom: 10px; background: white; padding: 10px 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #word-display { font-size: 2em; font-weight: bold; color: #1a73e8; }
+        .controls { display: flex; gap: 10px; }
+        button { font-size: 1.1em; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-check { background-color: #ff9800; color: white; }
         .btn-next { background-color: #4caf50; color: white; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #feedback { font-size: 1.2em; font-weight: bold; width: 200px; text-align: right; }
         
-        #feedback { margin-top: 15px; font-size: 1.3em; font-weight: bold; min-height: 1.5em; }
+        /* 키보드 레이아웃 */
+        .keyboard { display: flex; flex-direction: column; align-items: center; gap: 8px; background: #e0e5ec; padding: 15px; border-radius: 15px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
+        
+        /* 숫자열 */
+        .row-num { display: flex; gap: 4px; margin-bottom: 10px; }
+        .key-num { width: 45px; height: 40px; background: linear-gradient(to bottom, #fff, #e6e6e6); border: 1px solid #b3b3b3; border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: 1.1em; font-weight: bold; color: #555; box-shadow: 0 2px 2px rgba(0,0,0,0.1); }
+
+        /* 중앙 자음열 */
+        .row-middle { display: flex; gap: 30px; }
+        .hand { display: flex; gap: 4px; }
+        .col { display: flex; flex-direction: column; gap: 4px; }
+        
+        /* 양쪽 끝 튀어나온 키 배열 조정 */
+        .col.offset-left { margin-top: 20px; }
+        .col.offset-right { margin-top: 20px; }
+
+        /* 기본 키 스타일 */
+        .key { width: 50px; height: 50px; background: linear-gradient(to bottom, #fff, #f0f0f0); border: 1px solid #aaa; border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: 1.2em; font-weight: bold; color: #333; cursor: pointer; box-shadow: 0 3px 0 #ccc; transition: all 0.1s; }
+        .key:active { transform: translateY(3px); box-shadow: 0 0 0 #ccc; }
+        
+        /* 모음열 (엄지) */
+        .row-bottom { display: flex; gap: 4px; margin-top: 15px; align-items: flex-start; justify-content: center; width: 100%; position: relative; }
+        .key.thumb { height: 75px; width: 55px; border-radius: 5px 5px 30px 30px; } /* 둥근 하단 */
+        .thumb-arc { display: flex; gap: 4px; margin-top: 10px; } /* 아치형 배치 느낌 */
+        .key.space { width: 90px; height: 65px; border-radius: 10px; position: absolute; right: 0; bottom: 0; }
+
+        /* 선택 및 정답 상태 색상 */
+        .key.selected { background: #1a73e8; color: white; border-color: #0d47a1; box-shadow: 0 3px 0 #0d47a1; }
+        .key.correct-key { background: #28a745 !important; color: white !important; border-color: #1e7e34 !important; box-shadow: 0 3px 0 #1e7e34 !important; }
+        .key.wrong-key { background: #dc3545 !important; color: white !important; border-color: #c82333 !important; box-shadow: 0 3px 0 #c82333 !important; }
+        .key.missed-key { border: 4px dashed #28a745 !important; color: #28a745 !important; font-weight: 900; background: #e8f5e9 !important; }
+
         .text-success { color: #28a745; }
         .text-danger { color: #dc3545; }
     </style>
 </head>
 <body>
+
+    <div id="portrait-warning">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 20px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+        <p>실제 연습을 위해<br><b>화면을 가로로 돌려주세요</b></p>
+    </div>
+
     <div id="app">
-        <h2>약어 키보드 연습</h2>
-        <div id="word-display">단어 준비 중...</div>
+        <div class="header">
+            <div id="word-display">단어 준비 중...</div>
+            <div class="controls">
+                <button class="btn-check" id="btn-check" onclick="checkAnswer()">정답확인</button>
+                <button class="btn-next" id="btn-next" onclick="nextQuestion()" disabled>다음 문제</button>
+            </div>
+            <div id="feedback"></div>
+        </div>
 
-        <div class="keyboard-area">
-            <div class="hands-area">
-                <div class="hand-section" id="left-hand">
-                    <div class="section-title">왼손 (초성)</div>
-                    <div class="key" data-key="L_ㅊ">ㅊ</div><div class="key" data-key="L_ㅍ">ㅍ</div><div class="key" data-key="L_ㅌ">ㅌ</div><div class="key" data-key="L_ㅋ">ㅋ</div>
-                    <div class="key" data-key="L_ㅅ">ㅅ</div><div class="key" data-key="L_ㅁ">ㅁ</div><div class="key" data-key="L_ㄴ">ㄴ</div><div class="key" data-key="L_ㅇ">ㅇ</div>
-                    <div class="key" data-key="L_ㅂ">ㅂ</div><div class="key" data-key="L_ㅈ">ㅈ</div><div class="key" data-key="L_ㄷ">ㄷ</div><div class="key" data-key="L_ㄱ">ㄱ</div>
-                    <div class="key" data-key="L_ㅎ">ㅎ</div><div class="key" data-key="L_ㄹ">ㄹ</div>
+        <div class="keyboard">
+            <div class="row-num">
+                <div class="key-num" data-key="N_1">1</div><div class="key-num" data-key="N_2">2</div><div class="key-num" data-key="N_3">3</div><div class="key-num" data-key="N_4">4</div><div class="key-num" data-key="N_5">5</div><div class="key-num" data-key="N_6">6</div><div class="key-num" data-key="N_7">7</div><div class="key-num" data-key="N_8">8</div><div class="key-num" data-key="N_9">9</div><div class="key-num" data-key="N_0">0</div>
+            </div>
+
+            <div class="row-middle">
+                <div class="hand">
+                    <div class="col offset-left">
+                        <div class="key" data-key="L_ㅊ">ㅊ</div><div class="key" data-key="L_ㅅ">ㅅ</div><div class="key" data-key="L_ㅁ">ㅁ</div>
+                    </div>
+                    <div class="col">
+                        <div class="key" data-key="L_ㅌ">ㅌ</div><div class="key" data-key="L_ㄷ">ㄷ</div><div class="key" data-key="L_ㄹ">ㄹ</div>
+                    </div>
+                    <div class="col">
+                        <div class="key" data-key="L_ㅋ">ㅋ</div><div class="key" data-key="L_ㅈ">ㅈ</div><div class="key" data-key="L_ㄴ">ㄴ</div>
+                    </div>
+                    <div class="col">
+                        <div class="key" data-key="L_ㅂ">ㅂ</div><div class="key" data-key="L_ㄱ">ㄱ</div><div class="key" data-key="L_ㅎ">ㅎ</div>
+                    </div>
+                    <div class="col">
+                        <div class="key" data-key="L_ㅍ">ㅍ</div><div class="key" data-key="L_ㄲ">ㅋ</div><div class="key" data-key="L_기호">⊣</div>
+                    </div>
                 </div>
-                
-                <div class="hand-section" id="right-hand">
-                    <div class="section-title">오른손 (종성)</div>
-                    <div class="key" data-key="R_ㅊ">ㅊ</div><div class="key" data-key="R_ㅍ">ㅍ</div><div class="key" data-key="R_ㅌ">ㅌ</div><div class="key" data-key="R_ㅋ">ㅋ</div>
-                    <div class="key" data-key="R_ㅅ">ㅅ</div><div class="key" data-key="R_ㅁ">ㅁ</div><div class="key" data-key="R_ㄴ">ㄴ</div><div class="key" data-key="R_ㅇ">ㅇ</div>
-                    <div class="key" data-key="R_ㅂ">ㅂ</div><div class="key" data-key="R_ㅈ">ㅈ</div><div class="key" data-key="R_ㄷ">ㄷ</div><div class="key" data-key="R_ㄱ">ㄱ</div>
-                    <div class="key" data-key="R_ㅎ">ㅎ</div><div class="key" data-key="R_ㄹ">ㄹ</div>
+
+                <div class="hand">
+                    <div class="col">
+                        <div class="key" data-key="R_ㄲ">ㄲ</div><div class="key" data-key="R_ㄱ">ㄱ</div><div class="key" data-key="R_ㅆ">ㅆ</div>
+                    </div>
+                    <div class="col">
+                        <div class="key" data-key="R_승">승</div><div class="key" data-key="R_ㄴ">ㄴ</div><div class="key" data-key="R_ㅇ">ㅇ</div>
+                    </div>
+                    <div class="col">
+                        <div class="key" data-key="R_ㅌ">ㅌ</div><div class="key" data-key="R_ㄹ">ㄹ</div><div class="key" data-key="R_ㅁ">ㅁ</div>
+                    </div>
+                    <div class="col">
+                        <div class="key" data-key="R_ㅊ">ㅊ</div><div class="key" data-key="R_ㅅ">ㅅ</div><div class="key" data-key="R_ㄷ">ㄷ</div>
+                    </div>
+                    <div class="col offset-right">
+                        <div class="key" data-key="R_ㅍ">ㅍ</div><div class="key" data-key="R_ㅂ">ㅂ</div><div class="key" data-key="R_ㅈ">ㅈ</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="vowel-section" id="vowels">
-                <div class="section-title">엄지 (모음 및 기호)</div>
-                <div class="key" data-key="V_ㅗ">ㅗ</div><div class="key" data-key="V_ㅓ">ㅓ</div><div class="key" data-key="V_ㅏ">ㅏ</div><div class="key" data-key="V_ㅣ">ㅣ</div>
-                <div class="key" data-key="V_ㅡ">ㅡ</div><div class="key" data-key="V_ㅜ">ㅜ</div><div class="key" data-key="V_ㅐ">ㅐ</div><div class="key" data-key="V_ㅔ">ㅔ</div>
-                <div class="key" data-key="V_ㅛ">ㅛ</div><div class="key" data-key="V_ㅕ">ㅕ</div><div class="key" data-key="V_ㅑ">ㅑ</div><div class="key" data-key="V_ㅠ">ㅠ</div>
+            <div class="row-bottom">
+                <div class="thumb-arc">
+                    <div class="key thumb" data-key="V_ㅗ">ㅗ</div>
+                    <div class="key thumb" data-key="V_ㅏ">ㅏ</div>
+                    <div class="key thumb" data-key="V_ㅜ" style="margin-top: 5px;">ㅜ</div>
+                    <div class="key thumb" data-key="V_ㅡ" style="margin-top: 5px;">ㅡ</div>
+                    <div class="key thumb" data-key="V_ㅓ">ㅓ</div>
+                    <div class="key thumb" data-key="V_ㅣ">ㅣ</div>
+                </div>
+                <div class="key space" data-key="V_SPACE"></div>
             </div>
         </div>
-
-        <div class="controls">
-            <button class="btn-check" id="btn-check" onclick="checkAnswer()">정답확인</button>
-            <button class="btn-next" id="btn-next" onclick="nextQuestion()" disabled>다음 문제</button>
-        </div>
-        
-        <div id="feedback"></div>
     </div>
 
     <script>
-        // 연습할 약어 데이터 세팅
-        // keys 배열 안에 정답이 되는 키의 data-key 값을 적어주세요.
-        // L_ (왼손 초성), R_ (오른손 종성), V_ (엄지 모음)
+        // 연습할 약어 데이터 세팅 (실제 소리자바 입력 방식에 맞게 수정해주세요)
         const dictionary = [
-            { word: "대한민국", keys: ["L_ㄷ", "L_ㅎ", "V_ㅏ", "R_ㅁ", "R_ㄱ"] }, // 예시 데이터입니다.
-            { word: "그리고", keys: ["L_ㄱ", "V_ㅡ", "V_ㅣ", "R_ㄱ"] },
-            { word: "그래서", keys: ["L_ㄱ", "L_ㅅ", "V_ㅐ"] },
-            { word: "국회의원", keys: ["L_ㄱ", "L_ㅎ", "V_ㅜ", "R_ㅇ"] }
+            { word: "대한민국", keys: ["L_ㄷ", "L_ㅎ", "V_ㅏ", "R_ㅁ", "R_ㄱ"] },
+            { word: "그래서", keys: ["L_ㄱ", "L_ㅅ", "V_ㅓ", "V_ㅣ"] }, 
+            { word: "국회의원", keys: ["L_ㄱ", "L_ㅎ", "V_ㅜ", "R_ㅇ"] },
+            { word: "감사합니다", keys: ["L_ㄱ", "V_ㅏ", "R_ㅁ", "L_ㅅ", "L_ㅎ", "V_ㅏ", "R_ㅂ", "L_ㄴ", "V_ㅣ", "R_ㄷ"] } // 예시 데이터
         ];
 
         let currentQuestion = null;
         let selectedKeys = new Set();
         let isAnswerChecked = false;
 
-        // 키 터치(클릭) 이벤트 설정
-        document.querySelectorAll('.key').forEach(keyEl => {
+        // 모든 키(자음, 모음, 숫자)에 클릭 이벤트 적용
+        document.querySelectorAll('.key, .key-num').forEach(keyEl => {
             keyEl.addEventListener('click', () => {
-                if (isAnswerChecked) return; // 정답 확인 후에는 입력 방지
+                if (isAnswerChecked) return;
                 
                 const keyValue = keyEl.getAttribute('data-key');
                 if (selectedKeys.has(keyValue)) {
@@ -114,17 +168,17 @@
         });
 
         function nextQuestion() {
-            // 초기화
             selectedKeys.clear();
             isAnswerChecked = false;
-            document.querySelectorAll('.key').forEach(keyEl => {
-                keyEl.className = 'key'; // 모든 상태 클래스 제거
+            
+            document.querySelectorAll('.key, .key-num').forEach(keyEl => {
+                keyEl.classList.remove('selected', 'correct-key', 'wrong-key', 'missed-key');
             });
+            
             document.getElementById('feedback').innerText = '';
             document.getElementById('btn-check').disabled = false;
             document.getElementById('btn-next').disabled = true;
 
-            // 랜덤 단어 선택
             const randomIndex = Math.floor(Math.random() * dictionary.length);
             currentQuestion = dictionary[randomIndex];
             document.getElementById('word-display').innerText = currentQuestion.word;
@@ -133,7 +187,7 @@
         function checkAnswer() {
             if (!currentQuestion) return;
             if (selectedKeys.size === 0) {
-                alert("키를 하나 이상 선택해주세요.");
+                alert("키를 하나 이상 터치해주세요.");
                 return;
             }
 
@@ -144,32 +198,28 @@
             const correctKeys = new Set(currentQuestion.keys);
             let isPerfect = true;
 
-            // 사용자가 선택한 키 검사
-            document.querySelectorAll('.key').forEach(keyEl => {
+            document.querySelectorAll('.key, .key-num').forEach(keyEl => {
                 const keyValue = keyEl.getAttribute('data-key');
                 const isSelected = selectedKeys.has(keyValue);
                 const isCorrect = correctKeys.has(keyValue);
 
                 if (isSelected && isCorrect) {
-                    // 맞게 누른 키 (초록색)
-                    keyEl.classList.add('correct-key');
+                    keyEl.classList.add('correct-key'); // 알맞게 누름 (초록)
                 } else if (isSelected && !isCorrect) {
-                    // 잘못 누른 키 (빨간색)
-                    keyEl.classList.add('wrong-key');
+                    keyEl.classList.add('wrong-key'); // 잘못 누름 (빨강)
                     isPerfect = false;
                 } else if (!isSelected && isCorrect) {
-                    // 눌렀어야 했는데 안 누른 키 (초록색 점선 테두리)
-                    keyEl.classList.add('missed-key');
+                    keyEl.classList.add('missed-key'); // 빠뜨림 (초록 점선)
                     isPerfect = false;
                 }
             });
 
             const feedbackEl = document.getElementById('feedback');
             if (isPerfect) {
-                feedbackEl.innerText = "정답입니다! 완벽해요. 🎉";
+                feedbackEl.innerText = "정답! 🎉";
                 feedbackEl.className = "text-success";
             } else {
-                feedbackEl.innerText = "오답입니다. 표시된 키 배열을 확인해보세요.";
+                feedbackEl.innerText = "오답입니다 💦";
                 feedbackEl.className = "text-danger";
             }
         }

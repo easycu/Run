@@ -5,115 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>소리자바 약어 키보드 연습기</title>
     <style>
-        /* 기본 스타일 */
-        body { 
-            font-family: 'Malgun Gothic', sans-serif; 
-            background-color: #f4f7f6; 
-            margin: 0; 
-            padding: 0; 
-            touch-action: manipulation; 
-            user-select: none; 
-            display: flex;
-            justify-content: center;
-        }
+        /* 기본 스타일 (세로 스크롤 허용) */
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #d9e0e7; margin: 0; padding: 10px 5px 40px 5px; touch-action: manipulation; user-select: none; }
         
-        /* 앱 레이아웃 (세로 모드에서도 꽉 차게) */
-        #app { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            width: 100%; 
-            max-width: 600px; /* 태블릿/PC에서도 보기 좋게 제한 */
-            padding: 15px 10px; 
-            box-sizing: border-box; 
-        }
+        #app { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 600px; margin: 0 auto; box-sizing: border-box; }
         
         /* 상단 상태창 */
-        .header { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            width: 100%; 
-            margin-bottom: 20px; 
-            background: white; 
-            padding: 15px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
-            box-sizing: border-box;
-        }
-        #word-display { font-size: 2em; font-weight: bold; color: #1a73e8; margin-bottom: 15px; }
-        .controls { display: flex; gap: 10px; margin-bottom: 10px; }
-        button { font-size: 1.1em; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .header { display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 15px; background: white; padding: 15px 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box; }
+        #word-display { font-size: 1.8em; font-weight: bold; color: #1a73e8; margin-bottom: 10px; }
+        .controls { display: flex; gap: 8px; margin-bottom: 5px; }
+        button { font-size: 1em; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-check { background-color: #ff9800; color: white; }
         .btn-next { background-color: #4caf50; color: white; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #feedback { font-size: 1.2em; font-weight: bold; height: 1.5em; text-align: center; }
+        #feedback { font-size: 1.1em; font-weight: bold; height: 1.5em; margin-top: 5px; }
         
-        /* 키보드 레이아웃 (반응형 퍼센트 단위 적용) */
-        .keyboard { 
-            width: 100%; 
-            background: #e0e5ec; 
-            padding: 15px 10px; 
-            border-radius: 12px; 
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1); 
-            box-sizing: border-box;
-        }
+        /* 키보드 레이아웃 (세로 모드에 맞게 크기 축소) */
+        .keyboard { display: flex; flex-direction: column; align-items: center; background: #e0e5ec; padding: 10px; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box; }
         
-        /* 숫자열 */
-        .row-num { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .key-num { 
-            width: 9%; 
-            aspect-ratio: 1.2 / 1; 
-            background: linear-gradient(to bottom, #fff, #e6e6e6); 
-            border: 1px solid #b3b3b3; 
-            border-radius: 4px; 
-            display: flex; justify-content: center; align-items: center; 
-            font-size: clamp(12px, 3.5vw, 16px); 
-            font-weight: bold; color: #555; 
-            box-shadow: 0 2px 2px rgba(0,0,0,0.1); 
-        }
+        .row-num { display: flex; gap: 2px; margin-bottom: 10px; }
+        .key-num { width: 28px; height: 28px; background: linear-gradient(to bottom, #fff, #e6e6e6); border: 1px solid #b3b3b3; border-radius: 3px; display: flex; justify-content: center; align-items: center; font-size: 0.9em; font-weight: bold; color: #555; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-        /* 중앙 자음열 */
-        .row-middle { display: flex; justify-content: space-between; gap: 2%; width: 100%; }
-        .hand { display: flex; justify-content: space-between; width: 49%; }
-        .col { display: flex; flex-direction: column; justify-content: flex-start; gap: 4px; width: 18.5%; }
+        .row-middle { display: flex; gap: 15px; justify-content: center; width: 100%; }
+        .hand { display: flex; gap: 2px; }
+        .col { display: flex; flex-direction: column; gap: 2px; }
         
-        /* 양쪽 끝 튀어나온 키 배열 조정 */
-        .col.offset-left { margin-top: 10%; }
-        .col.offset-right { margin-top: 10%; }
+        .col.offset-left { margin-top: 15px; }
+        .col.offset-right { margin-top: 15px; }
 
-        /* 기본 키 스타일 */
-        .key { 
-            width: 100%; 
-            aspect-ratio: 1 / 1; 
-            background: linear-gradient(to bottom, #fff, #f0f0f0); 
-            border: 1px solid #aaa; 
-            border-radius: 4px; 
-            display: flex; justify-content: center; align-items: center; 
-            font-size: clamp(12px, 3.5vw, 18px); 
-            font-weight: bold; color: #333; 
-            cursor: pointer; 
-            box-shadow: 0 3px 0 #ccc; 
-            transition: all 0.1s; 
-            box-sizing: border-box;
-        }
-        .key:active { transform: translateY(3px); box-shadow: 0 0 0 #ccc; }
+        .key { width: 30px; height: 36px; background: linear-gradient(to bottom, #fff, #f0f0f0); border: 1px solid #aaa; border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: 1em; font-weight: bold; color: #333; cursor: pointer; box-shadow: 0 2px 0 #ccc; }
+        .key:active { transform: translateY(2px); box-shadow: 0 0 0 #ccc; }
         
-        /* 모음열 (엄지) */
-        .row-bottom { display: flex; justify-content: center; margin-top: 15px; position: relative; width: 100%; }
-        .thumb-arc { display: flex; justify-content: center; gap: 2%; width: 60%; }
-        .key.thumb { width: 15%; aspect-ratio: 1 / 1.5; border-radius: 5px 5px 25px 25px; } 
-        .thumb-down { margin-top: 8%; } /* 둥근 아치형 배치를 위해 살짝 내림 */
-        .key.space { width: 18%; aspect-ratio: 1.5 / 1; position: absolute; right: 2%; bottom: 0; border-radius: 8px; }
+        .row-bottom { display: flex; gap: 2px; margin-top: 12px; justify-content: center; position: relative; width: 100%; }
+        .key.thumb { height: 48px; width: 34px; border-radius: 4px 4px 20px 20px; }
+        .thumb-arc { display: flex; gap: 2px; margin-top: 5px; justify-content: center; }
+        .key.space { width: 60px; height: 40px; border-radius: 8px; position: absolute; right: 5px; bottom: 0; }
 
-        /* 선택 및 정답 상태 색상 */
-        .key.selected { background: #1a73e8; color: white; border-color: #0d47a1; box-shadow: 0 3px 0 #0d47a1; }
-        .key.correct-key { background: #28a745 !important; color: white !important; border-color: #1e7e34 !important; box-shadow: 0 3px 0 #1e7e34 !important; }
-        .key.wrong-key { background: #dc3545 !important; color: white !important; border-color: #c82333 !important; box-shadow: 0 3px 0 #c82333 !important; }
-        .key.missed-key { border: 3px dashed #28a745 !important; color: #28a745 !important; font-weight: 900; background: #e8f5e9 !important; box-shadow: none !important; }
+        /* 상태 색상 */
+        .key.selected, .key-num.selected { background: #1a73e8; color: white; border-color: #0d47a1; box-shadow: 0 2px 0 #0d47a1; }
+        .key.correct-key, .key-num.correct-key { background: #28a745 !important; color: white !important; border-color: #1e7e34 !important; box-shadow: 0 2px 0 #1e7e34 !important; }
+        .key.wrong-key, .key-num.wrong-key { background: #dc3545 !important; color: white !important; border-color: #c82333 !important; box-shadow: 0 2px 0 #c82333 !important; }
+        .key.missed-key, .key-num.missed-key { border: 3px dashed #28a745 !important; color: #28a745 !important; font-weight: 900; background: #e8f5e9 !important; }
+        
+        /* 약어 미리보기 색상 (보라색) */
+        .preview-key { background: #9c27b0 !important; color: white !important; border-color: #7b1fa2 !important; box-shadow: 0 2px 0 #7b1fa2 !important; }
 
         .text-success { color: #28a745; }
         .text-danger { color: #dc3545; }
+
+        /* 약어 관리 섹션 */
+        .dict-section { width: 100%; background: white; margin-top: 20px; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .dict-title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        
+        .dict-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; }
+        .input-row { display: flex; gap: 8px; }
+        .dict-form input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; }
+        #new-word { flex: 1; }
+        #new-keys { width: 100%; background: #e9ecef; color: #666; font-size: 0.85em; }
+        .btn-save { background-color: #007bff; color: white; width: 60px; }
+        
+        .dict-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.85em; color: #666; }
+        .btn-delete { background-color: #dc3545; color: white; padding: 5px 10px; font-size: 0.9em; border-radius: 4px; }
+        
+        .dict-list { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; }
+        .dict-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; transition: background 0.1s; }
+        .dict-item:hover { background: #f1f8ff; }
+        .dict-item:last-child { border-bottom: none; }
+        .dict-cb { margin-right: 10px; transform: scale(1.3); }
+        .word-text { flex: 1; font-weight: bold; color: #1a73e8; cursor: pointer; }
+        .word-keys { flex: 2; font-size: 0.75em; color: #777; cursor: pointer; word-break: break-all; text-align: right; }
+
     </style>
 </head>
 <body>
@@ -135,39 +96,19 @@
 
             <div class="row-middle">
                 <div class="hand">
-                    <div class="col offset-left">
-                        <div class="key" data-key="L_ㅊ">ㅊ</div><div class="key" data-key="L_ㅅ">ㅅ</div><div class="key" data-key="L_ㅁ">ㅁ</div>
-                    </div>
-                    <div class="col">
-                        <div class="key" data-key="L_ㅌ">ㅌ</div><div class="key" data-key="L_ㄷ">ㄷ</div><div class="key" data-key="L_ㄹ">ㄹ</div>
-                    </div>
-                    <div class="col">
-                        <div class="key" data-key="L_ㅋ">ㅋ</div><div class="key" data-key="L_ㅈ">ㅈ</div><div class="key" data-key="L_ㄴ">ㄴ</div>
-                    </div>
-                    <div class="col">
-                        <div class="key" data-key="L_ㅂ">ㅂ</div><div class="key" data-key="L_ㄱ">ㄱ</div><div class="key" data-key="L_ㅎ">ㅎ</div>
-                    </div>
-                    <div class="col">
-                        <div class="key" data-key="L_ㅍ">ㅍ</div><div class="key" data-key="L_ㄲ">ㅋ</div><div class="key" data-key="L_기호">⊣</div>
-                    </div>
+                    <div class="col offset-left"><div class="key" data-key="L_ㅊ">ㅊ</div><div class="key" data-key="L_ㅅ">ㅅ</div><div class="key" data-key="L_ㅁ">ㅁ</div></div>
+                    <div class="col"><div class="key" data-key="L_ㅌ">ㅌ</div><div class="key" data-key="L_ㄷ">ㄷ</div><div class="key" data-key="L_ㄹ">ㄹ</div></div>
+                    <div class="col"><div class="key" data-key="L_ㅋ">ㅋ</div><div class="key" data-key="L_ㅈ">ㅈ</div><div class="key" data-key="L_ㄴ">ㄴ</div></div>
+                    <div class="col"><div class="key" data-key="L_ㅂ">ㅂ</div><div class="key" data-key="L_ㄱ">ㄱ</div><div class="key" data-key="L_ㅎ">ㅎ</div></div>
+                    <div class="col"><div class="key" data-key="L_ㅍ">ㅍ</div><div class="key" data-key="L_ㄲ">ㅋ</div><div class="key" data-key="L_기호">⊣</div></div>
                 </div>
 
                 <div class="hand">
-                    <div class="col">
-                        <div class="key" data-key="R_ㄲ">ㄲ</div><div class="key" data-key="R_ㄱ">ㄱ</div><div class="key" data-key="R_ㅆ">ㅆ</div>
-                    </div>
-                    <div class="col">
-                        <div class="key" data-key="R_ㅎ">ㅎ</div><div class="key" data-key="R_ㄴ">ㄴ</div><div class="key" data-key="R_ㅇ">ㅇ</div>
-                    </div>
-                    <div class="col">
-                        <div class="key" data-key="R_ㅌ">ㅌ</div><div class="key" data-key="R_ㄹ">ㄹ</div><div class="key" data-key="R_ㅁ">ㅁ</div>
-                    </div>
-                    <div class="col">
-                        <div class="key" data-key="R_ㅊ">ㅊ</div><div class="key" data-key="R_ㅅ">ㅅ</div><div class="key" data-key="R_ㄷ">ㄷ</div>
-                    </div>
-                    <div class="col offset-right">
-                        <div class="key" data-key="R_ㅍ">ㅍ</div><div class="key" data-key="R_ㅂ">ㅂ</div><div class="key" data-key="R_ㅈ">ㅈ</div>
-                    </div>
+                    <div class="col"><div class="key" data-key="R_ㄲ">ㄲ</div><div class="key" data-key="R_ㄱ">ㄱ</div><div class="key" data-key="R_ㅆ">ㅆ</div></div>
+                    <div class="col"><div class="key" data-key="R_승">승</div><div class="key" data-key="R_ㄴ">ㄴ</div><div class="key" data-key="R_ㅇ">ㅇ</div></div>
+                    <div class="col"><div class="key" data-key="R_ㅌ">ㅌ</div><div class="key" data-key="R_ㄹ">ㄹ</div><div class="key" data-key="R_ㅁ">ㅁ</div></div>
+                    <div class="col"><div class="key" data-key="R_ㅊ">ㅊ</div><div class="key" data-key="R_ㅅ">ㅅ</div><div class="key" data-key="R_ㄷ">ㄷ</div></div>
+                    <div class="col offset-right"><div class="key" data-key="R_ㅍ">ㅍ</div><div class="key" data-key="R_ㅂ">ㅂ</div><div class="key" data-key="R_ㅈ">ㅈ</div></div>
                 </div>
             </div>
 
@@ -175,33 +116,60 @@
                 <div class="thumb-arc">
                     <div class="key thumb" data-key="V_ㅗ">ㅗ</div>
                     <div class="key thumb" data-key="V_ㅏ">ㅏ</div>
-                    <div class="key thumb thumb-down" data-key="V_ㅜ">ㅜ</div>
-                    <div class="key thumb thumb-down" data-key="V_ㅡ">ㅡ</div>
+                    <div class="key thumb" data-key="V_ㅜ" style="margin-top: 3px;">ㅜ</div>
+                    <div class="key thumb" data-key="V_ㅡ" style="margin-top: 3px;">ㅡ</div>
                     <div class="key thumb" data-key="V_ㅓ">ㅓ</div>
                     <div class="key thumb" data-key="V_ㅣ">ㅣ</div>
                 </div>
                 <div class="key space" data-key="V_SPACE"></div>
             </div>
         </div>
+
+        <div class="dict-section">
+            <div class="dict-title">약어장 관리</div>
+            
+            <div class="dict-form">
+                <div style="font-size: 0.85em; color:#0056b3;">💡 단어 입력 후 키보드를 터치하면 배열이 자동 입력됩니다.</div>
+                <div class="input-row">
+                    <input type="text" id="new-word" placeholder="단어 (예: 대한민국)" autocomplete="off">
+                    <button class="btn-save" onclick="saveWord()">저장</button>
+                </div>
+                <input type="text" id="new-keys" placeholder="선택된 키가 여기에 표시됩니다." readonly>
+            </div>
+
+            <div class="dict-list-header">
+                <span>※ 목록을 터치하여 키보드 위치 확인</span>
+                <button class="btn-delete" onclick="deleteSelectedWords()">선택 삭제</button>
+            </div>
+
+            <ul class="dict-list" id="dict-list">
+                </ul>
+        </div>
     </div>
 
     <script>
-        // 연습할 약어 데이터 세팅 (자주 헷갈리는 단어를 여기에 추가하세요)
-        const dictionary = [
+        // 기본 약어 데이터 (localStorage에 있으면 불러오고 없으면 기본값 사용)
+        const defaultDict = [
             { word: "대한민국", keys: ["L_ㄷ", "L_ㅎ", "V_ㅏ", "R_ㅁ", "R_ㄱ"] },
             { word: "그래서", keys: ["L_ㄱ", "L_ㅅ", "V_ㅓ", "V_ㅣ"] }, 
-            { word: "국회의원", keys: ["L_ㄱ", "L_ㅎ", "V_ㅜ", "R_ㅇ"] },
-            { word: "감사합니다", keys: ["L_ㄱ", "V_ㅏ", "R_ㅁ", "L_ㅅ", "L_ㅎ", "V_ㅏ", "R_ㅂ", "L_ㄴ", "V_ㅣ", "R_ㄷ"] } 
+            { word: "국회의원", keys: ["L_ㄱ", "L_ㅎ", "V_ㅜ", "R_ㅇ"] }
         ];
 
+        let dictionary = JSON.parse(localStorage.getItem('sorizavaDict')) || defaultDict;
+        
         let currentQuestion = null;
         let selectedKeys = new Set();
         let isAnswerChecked = false;
+        let editIndex = -1; // -1이면 새로 추가, 그 이상이면 해당 인덱스 수정
 
+        // 모든 키에 클릭 이벤트 추가
         document.querySelectorAll('.key, .key-num').forEach(keyEl => {
             keyEl.addEventListener('click', () => {
                 if (isAnswerChecked) return;
                 
+                // 미리보기(보라색)로 켜진 키가 있다면 키보드 리셋
+                clearPreviews();
+
                 const keyValue = keyEl.getAttribute('data-key');
                 if (selectedKeys.has(keyValue)) {
                     selectedKeys.delete(keyValue);
@@ -210,20 +178,43 @@
                     selectedKeys.add(keyValue);
                     keyEl.classList.add('selected');
                 }
+
+                // 하단 약어 추가 폼의 텍스트창에 터치한 배열 자동 입력
+                document.getElementById('new-keys').value = Array.from(selectedKeys).join(', ');
             });
         });
 
-        function nextQuestion() {
-            selectedKeys.clear();
-            isAnswerChecked = false;
-            
-            document.querySelectorAll('.key, .key-num').forEach(keyEl => {
-                keyEl.classList.remove('selected', 'correct-key', 'wrong-key', 'missed-key');
+        // 미리보기 초기화 함수
+        function clearPreviews() {
+            document.querySelectorAll('.key, .key-num').forEach(k => {
+                k.classList.remove('preview-key');
             });
+        }
+
+        // 전체 키보드 리셋 함수
+        function resetKeyboard() {
+            selectedKeys.clear();
+            document.querySelectorAll('.key, .key-num').forEach(keyEl => {
+                keyEl.classList.remove('selected', 'correct-key', 'wrong-key', 'missed-key', 'preview-key');
+            });
+            document.getElementById('new-keys').value = '';
+        }
+
+        /* ----- 연습 게임 로직 ----- */
+        function nextQuestion() {
+            resetKeyboard();
+            isAnswerChecked = false;
+            editIndex = -1; // 수정 모드 해제
+            document.getElementById('new-word').value = '';
             
             document.getElementById('feedback').innerText = '';
             document.getElementById('btn-check').disabled = false;
             document.getElementById('btn-next').disabled = true;
+
+            if (dictionary.length === 0) {
+                document.getElementById('word-display').innerText = "약어를 추가해주세요";
+                return;
+            }
 
             const randomIndex = Math.floor(Math.random() * dictionary.length);
             currentQuestion = dictionary[randomIndex];
@@ -270,6 +261,121 @@
             }
         }
 
+        /* ----- 약어장 관리 로직 ----- */
+        function renderDict() {
+            const listEl = document.getElementById('dict-list');
+            listEl.innerHTML = '';
+            
+            dictionary.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'dict-item';
+                
+                // 체크박스
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'dict-cb';
+                cb.dataset.index = index;
+
+                // 단어 텍스트
+                const spanWord = document.createElement('div');
+                spanWord.className = 'word-text';
+                spanWord.innerText = item.word;
+                
+                // 키 배열 텍스트
+                const spanKeys = document.createElement('div');
+                spanKeys.className = 'word-keys';
+                spanKeys.innerText = item.keys.join(', ');
+
+                // 단어나 배열을 터치했을 때 미리보기 및 수정 모드 진입
+                const previewFn = () => {
+                    resetKeyboard(); // 입력중이던 상태 초기화
+                    
+                    // 해당 키들을 보라색으로 강조 표시
+                    item.keys.forEach(k => {
+                        const kEl = document.querySelector(`[data-key="${k}"]`);
+                        if(kEl) kEl.classList.add('preview-key');
+                    });
+                    
+                    // 수정하기 쉽게 폼에 값 채워넣기
+                    document.getElementById('new-word').value = item.word;
+                    document.getElementById('new-keys').value = item.keys.join(', ');
+                    
+                    // 선택된 키를 selectedKeys에 넣어두어 바로 수정 후 저장할 수 있게 연동
+                    item.keys.forEach(k => selectedKeys.add(k));
+
+                    editIndex = index;
+                    window.scrollTo({ top: 0, behavior: 'smooth' }); // 키보드가 보이게 위로 스크롤
+                };
+                
+                spanWord.onclick = previewFn;
+                spanKeys.onclick = previewFn;
+
+                li.appendChild(cb);
+                li.appendChild(spanWord);
+                li.appendChild(spanKeys);
+                listEl.appendChild(li);
+            });
+            
+            // 데이터 저장
+            localStorage.setItem('sorizavaDict', JSON.stringify(dictionary));
+        }
+
+        function saveWord() {
+            const word = document.getElementById('new-word').value.trim();
+            const keysStr = document.getElementById('new-keys').value.trim();
+            
+            if(!word || !keysStr) {
+                alert("단어를 입력하고 키보드에서 키를 터치해 배열을 완성해주세요.");
+                return;
+            }
+            
+            const keys = keysStr.split(',').map(s => s.trim()).filter(s => s);
+            
+            if (editIndex >= 0) {
+                // 기존 단어 덮어쓰기(수정)
+                dictionary[editIndex] = { word, keys };
+                editIndex = -1; // 수정 모드 해제
+            } else {
+                // 새 단어 추가 (중복 방지 등은 생략)
+                dictionary.push({ word, keys });
+            }
+            
+            // 저장 후 폼 초기화 및 리스트 새로고침
+            document.getElementById('new-word').value = '';
+            resetKeyboard();
+            renderDict();
+        }
+
+        function deleteSelectedWords() {
+            const checkboxes = document.querySelectorAll('.dict-cb:checked');
+            if(checkboxes.length === 0) {
+                alert("삭제할 단어를 먼저 체크해주세요.");
+                return;
+            }
+            if(!confirm(`선택한 ${checkboxes.length}개의 약어를 삭제하시겠습니까?`)) return;
+            
+            // 인덱스 꼬임 방지를 위해 뒤에서부터 삭제
+            const indicesToDelete = Array.from(checkboxes)
+                                         .map(cb => parseInt(cb.dataset.index))
+                                         .sort((a,b) => b - a);
+            
+            indicesToDelete.forEach(idx => {
+                dictionary.splice(idx, 1);
+            });
+            
+            editIndex = -1;
+            document.getElementById('new-word').value = '';
+            resetKeyboard();
+            renderDict();
+            
+            // 지웠는데 현재 풀고 있던 문제면 다음 문제로 넘김
+            if (dictionary.length === 0 || !dictionary.find(d => d.word === currentQuestion?.word)) {
+                nextQuestion();
+            }
+        }
+
+        // 앱 시작 시 약어장 렌더링 및 첫 문제 출제
+        renderDict();
         nextQuestion();
     </script>
 </body>

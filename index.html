@@ -147,13 +147,11 @@
     </div>
 
     <script>
-        // 기본 약어 데이터 (로컬 스토리지에 데이터가 없을 때만 사용)
         const defaultDictionary = [
             { word: "대한민국", keys: ["L_ㄷ", "L_ㅎ", "V_ㅏ", "R_ㅁ", "R_ㄱ"] },
             { word: "그래서", keys: ["L_ㄱ", "L_ㅅ", "V_ㅓ", "V_ㅣ"] }
         ];
 
-        // 로컬 스토리지에서 단어장 불러오기
         let dictionary = JSON.parse(localStorage.getItem('stenoDict'));
         if (!dictionary || dictionary.length === 0) {
             dictionary = [...defaultDictionary];
@@ -164,7 +162,6 @@
         let selectedKeys = new Set();
         let isAnswerChecked = false;
         
-        // 상태: 'practice' (연습 모드) 또는 'adding' (새 단어 추가 모드)
         let appMode = 'practice'; 
         let newWordToSave = '';
 
@@ -197,7 +194,11 @@
         function closeDict() {
             document.getElementById('dict-panel').style.display = 'none';
             document.getElementById('app').style.display = 'flex';
-            if(dictionary.length > 0) nextQuestion();
+            
+            // 단어장을 닫았을 때 진행 중이던 문제가 없으면 새로 하나 불러오기
+            if(dictionary.length > 0 && !currentQuestion) {
+                nextQuestion();
+            }
         }
 
         function renderDictList() {
@@ -232,7 +233,6 @@
             const word = prompt("추가할 단어나 약어를 입력하세요:");
             if (!word || word.trim() === "") return;
 
-            // UI 변경: 추가 모드로 전환
             appMode = 'adding';
             newWordToSave = word.trim();
             
@@ -271,17 +271,38 @@
 
         function cancelAdding() {
             appMode = 'practice';
+            // 버튼 상태 완전히 복구 (이 부분에서 다음 문제 버튼이 다시 나타납니다!)
             document.getElementById('btn-dict-open').style.display = 'block';
             document.getElementById('btn-check').style.display = 'block';
+            document.getElementById('btn-next').style.display = 'block'; 
             document.getElementById('btn-save').style.display = 'none';
             document.getElementById('btn-cancel').style.display = 'none';
+            
+            // 원래 연습하던 화면으로 복구
+            if (currentQuestion) {
+                document.getElementById('word-display').innerText = currentQuestion.word;
+            } else {
+                if(dictionary.length > 0) nextQuestion();
+                else document.getElementById('word-display').innerText = "단어장을 먼저 추가해주세요!";
+            }
+            
+            // 피드백 텍스트 제거하고 키보드 리셋
+            document.getElementById('feedback').innerText = '';
+            document.getElementById('feedback').className = '';
+            
+            // 만약 이미 정답을 확인한 상태였다면 다음 문제 버튼 활성화 유지
+            if(isAnswerChecked) {
+                document.getElementById('btn-check').disabled = true;
+                document.getElementById('btn-next').disabled = false;
+            }
+            
             resetKeys();
         }
 
         // ------------------- 연습 모드 로직 -------------------
         function resetKeys() {
             selectedKeys.clear();
-            isAnswerChecked = false;
+            if(appMode === 'adding') isAnswerChecked = false;
             document.querySelectorAll('.key, .key-num').forEach(keyEl => {
                 keyEl.classList.remove('selected', 'correct-key', 'wrong-key', 'missed-key');
             });
@@ -294,6 +315,7 @@
                 return;
             }
 
+            isAnswerChecked = false;
             resetKeys();
             document.getElementById('feedback').innerText = '';
             document.getElementById('btn-check').disabled = false;
@@ -346,7 +368,7 @@
 
         // 앱 시작
         if(dictionary.length > 0) nextQuestion();
-        else openDict(); // 단어가 없으면 단어장부터 엶
+        else openDict(); 
     </script>
 </body>
 </html>
